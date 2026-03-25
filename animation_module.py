@@ -12,24 +12,34 @@ class Animator:
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.scale = scale
-        self.frames = self.load_frames = 0
+        self.frames = self.load_frames()
         self.time = 0
+        self.timer = 0
+        self.current_frame = 0
+
     def load_frames(self):
         # this section will make it so we can cut the sprite sheet into individual frames
         frames = []
         sheet_width = self.sheet.get_width()
-        for x in range(0, sheet_width, self.frame_width):
-            frame = self.sheet.subsurface((x,0,self.frame_width, self.frame_height))
+
+        num_frames = sheet_width // self.frame_width
+
+        for i in range(num_frames):
+
+            x = i * self.frame_width
+            frame = self.sheet.subsurface((x,0,self.frame_width,self.frame_height))
+                
             if self.scale != 1:
-                frame = pygame.transform.scale(frame,(self.frame_width * self.scale, self.frame_height * self.scale))
-            frame.append(frame)
+                new_size = (int(self.frame_width * self.scale), int(self.frame_height * self.scale))
+                frame = pygame.transform.scale(frame,new_size)
+            frames.append(frame)
         return frames
     
-    def update(self,dt,speed=0.1):
+    def update(self,dt,speed=150):
         # This will determine how fast the frames will switch
         self.timer += dt
         if self.timer >= speed:
-            self.time = 0
+            self.timer -= speed
             self.current_frame = (self.current_frame + 1) % len(self.frames)
 
     def draw(self,screen,x,y):
