@@ -36,10 +36,10 @@ class Pet:
         # so we can get the overall logic
         # This is where we put all the possible animations for the pet
         self.animations = {
-            "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 5)
+            "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 6)
             #"Hungry": Animator("Pet_idle_hungry.png",32,32,scale=4),
             #"Eating": Animator("Pet_eating.png", 32, 32, scale =4),
-            #"Sleeping": Animator("Pet_sleeping.png", 32,32,scale = 4)
+            #"Sleeping": Animator("spritesheet_sleeping_animation.png", 48,48,scale = 6)
         }
         self.state = "Idle" # Set this up as the starting state for the pet
     
@@ -49,7 +49,7 @@ class Pet:
         self.animations[self.state].update(dt) # animating the pet
 
     def draw(self, screen):
-        fox_half_size = (48 * 5) // 2
+        fox_half_size = (48 * 6) // 2 # If you change the scale, remember to change this too
         pos_x = (cfg.WIDTH // 2) - fox_half_size
         pos_y = (cfg.HEIGHT // 2) - fox_half_size
         self.animations[self.state].draw(screen,pos_x,pos_y)
@@ -80,7 +80,7 @@ while Running:
 
     # pet update logic
     my_pet.update(dt)
-    print(f"Happ: {my_pet.happiness}")
+    #print(f"Happ: {my_pet.happiness}")
 
     # WHITE = (255,255,255)
     screen.fill(cfg.WHITE) # white screen for now
