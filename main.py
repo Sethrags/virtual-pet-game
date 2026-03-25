@@ -1,6 +1,8 @@
 import pygame
 import sys
 import config as cfg        # imports config file for ease of project
+from animation_module import Animator # This is for rendering images
+
 
 #---------------------
 # VIRTUAL PET PROJECT
@@ -28,11 +30,34 @@ class Pet:
         self.hunger = 100
         self.happiness = 100
         self.energy = 100
-
+        # dummy code for now
+        # the animator will take the png and scale
+        # We will need to include some if statements 
+        # so we can get the overall logic
+        # This is where we put all the possible animations for the pet
+        self.animations = {
+            "Idle": Animator("Pet_idle.png", 32, 32, scale= 4),
+            "Hungry": Animator("Pet_idle_hungry.png",32,32,scale=4),
+            "Eating": Animator("Pet_eating.png", 32, 32, scale =4),
+            "Sleeping": Animator("Pet_sleeping.png", 32,32,scale = 4)
+        }
+        self.state = "Idle" # Set this up as the starting state for the pet
+    
     def update(self,dt):
         self.hunger -= 0.01 * dt
         self.happiness -= 0.005 * dt
+        self.animations[self.state].update(dt) # animating the pet
 
+    def draw(self, screen):
+        self.animations[self.state].draw(screen,200,200)
+
+    def change_state(self,new_state):
+        if self.state != new_state:
+            self.state = new_state
+            self.animations[self.state].current_frame = 0
+            self.animations[self.state].timer=0
+
+#----------------------------------------#
 # Running parameters
 Running = True
 clock = pygame.time.Clock()
@@ -58,9 +83,7 @@ while Running:
     #Update the display tp show changes
     
     #for character display (template)
-    #Pet.draw((how big i wanted to make the character,x , y))
-
-
+    my_pet.draw(screen)
     pygame.display.flip()
 
 
