@@ -35,7 +35,7 @@ class Animator:
             frames.append(frame)
         return frames
     
-    def update(self,dt,speed=150):
+    def update(self,dt,speed=100):
         # This will determine how fast the frames will switch
         self.timer += dt
         if self.timer >= speed:
