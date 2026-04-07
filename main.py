@@ -17,6 +17,9 @@ from animation_module import Animator # This is for rendering images
 # Initialize Pygame modules
 pygame.init()
 
+# This code is for the custom font (pixelated font)
+custom_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 32) # We will test out the font size
+
 # Window dimensions (put this on config.py?)
 #WIDTH, HEIGHT = 500, 500
 screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
