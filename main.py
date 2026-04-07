@@ -2,6 +2,7 @@ import pygame
 import sys
 import config as cfg        # imports config file for ease of project
 from animation_module import Animator # This is for rendering images
+from weatherapp import get_weather # this is the code for the weather application - Evan
 
 
 #---------------------
@@ -43,7 +44,7 @@ class Pet:
         }
         self.state = "Idle" # Set this up as the starting state for the pet
     
-    def update(self,dt):
+    def update(self,dt): # let me know if you want me to add something onto this for pet status based on weather
         self.hunger -= 0.00001 * dt
         self.happiness -= 0.000005 * dt
         self.animations[self.state].update(dt) # animating the pet
@@ -59,6 +60,25 @@ class Pet:
             self.state = new_state
             self.animations[self.state].current_frame = 0
             self.animations[self.state].timer=0
+
+
+    '''def apply_weather_effects(self, weather):
+        if weather is None:
+            return
+        
+        category = weather[category]
+
+        if category == "cold":
+            self.energy -= 0.005 # test
+        elif category == "hot":
+            self.hunger -= 0.005 # test
+        elif category == "temperate":
+            self.happiness += 0.002 # test
+
+font = pygame.font.Sysfont(None, 32)
+user_text = ""
+asking_location = True
+weather = None'''
 
 #----------------------------------------#
 # Running parameters
@@ -78,8 +98,30 @@ while Running:
         if event.type == pygame.QUIT:   #reads if window closes
             Running = False
 
+# this goes with the other weather comment above
+        '''if asking_location:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    weather = get_weather(user_text)
+                    asking_location = False
+                elif event.key == pygame.K_BACKSPACE:
+                    user.text = user_text[:-1]
+                else:
+                    user_text += event.unicode
+        
+    if asking_location:
+        screen.fill((255,255,255))
+        prompt = font.render("Enter city", True (0,0,0))
+        text_surface = font.render(user_text, True, (0,0,0))
+
+        screen.blit(prompt, (20, 20))
+        screen.blit(text_surface, (20, 60))
+
+        pygame.display.flip()
+        continue'''
+
     # pet update logic
-    my_pet.update(dt)
+    my_pet.update(dt) # this could also use weather
     #print(f"Happ: {my_pet.happiness}")
 
     # WHITE = (255,255,255)
