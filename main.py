@@ -28,6 +28,24 @@ screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
 # Window Title (Will be changed as we progress)
 pygame.display.set_caption("Pet Project")
 
+# This section will be for the implementation of the
+# Buttons on the bottom of the screen
+btn_width = 140
+btn_height = 60
+btn_y_pos = cfg.HEIGHT - 80
+feed_button = pygame.Rect(20, btn_y_pos, btn_width, btn_height)
+sleep_button = pygame.Rect(180, btn_y_pos,btn_width, btn_height)
+game_button = pygame.Rect(340, btn_y_pos, btn_width, btn_height)
+
+settings_open = False # Toggle for the settings menu
+settings_btn = pygame.Rect(cfg.WIDTH - 70, 20, 50, 50) # Placeholder for the button which is going to use the asset
+# --- Button colors ---
+BUTTON_COLOR = (100,100,100)
+BUTTON_HOVER = (150,150,150)
+
+# This section is for the settings button implementation
+
+
 # main class for pet
 class Pet:
     def __init__(self):
@@ -63,8 +81,15 @@ class Pet:
             self.state = new_state
             self.animations[self.state].current_frame = 0
             self.animations[self.state].timer=0
+    def feed(self):
+        raise NotImplementedError
+    
+    def sleep(self):
+        raise NotImplementedError
 
-
+    def play_game():
+        raise NotImplementedError
+    
     '''def apply_weather_effects(self, weather):
         if weather is None:
             return
@@ -95,11 +120,29 @@ while Running:
     # stands for delta time, which is apparently commonly used for stuff like characters state updates
     # FPS = 60
     dt = clock.tick(cfg.FPS)    #frame rate
+    mouse_pos = pygame.mouse.get_pos()
 
-    # event handler
+    # Event Handler
     for event in pygame.event.get():
+
         if event.type == pygame.QUIT:   #reads if window closes
             Running = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if settings_btn.collidepoint(mouse_pos):
+                settings_open = not settings_open
+
+            if not settings_open:
+                # FEED
+                if feed_button.collidepoint(mouse_pos):
+                    my_pet.feed()
+                # SLEEP
+                elif sleep_button.collidepoint(mouse_pos):
+                    my_pet.sleep()
+                # MINIGAME
+                elif game_button.collidepoint(mouse_pos):
+                    my_pet.play_game()
+            
 
 # this goes with the other weather comment above
         '''if asking_location:
@@ -124,15 +167,48 @@ while Running:
         continue'''
 
     # pet update logic
-    my_pet.update(dt) # this could also use weather
+    #my_pet.update(dt) # this could also use weather
     #print(f"Happ: {my_pet.happiness}")
 
     # WHITE = (255,255,255)
     screen.fill(cfg.WHITE) # white screen for now
     #Update the display tp show changes
+
+    # ---Drawing section---
+    if settings_open:
+        overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
+        overlay.set_alpha(180)
+        overlay.fill((0,0,0))
+        screen.blit(overlay, (0,0))
+
+        s_text = custom_font.render("SETTINGS",True,cfg.WHITE)
+        back_text = custom_font.render("Click SETTINGS Box to close",True,cfg.WHITE)
+        screen.blit(s_text, (cfg.WIDTH//2 - 100, 150))
+        screen.blit(back_text,(cfg.WIDTH//2 - 150, 250))
+    else:
+        # Drawing the pet to the screen
+        my_pet.update(dt)
+        my_pet.draw(screen)
+
+        # Button Drawing Implementation
+        for rect, label in [(feed_button,"FEED"),(sleep_button, "SLEEP"),(game_button,"GAME")]:
+            # Change the color if the mouse is hovering
+            color = BUTTON_HOVER if rect.collidepoint(mouse_pos) else BUTTON_COLOR
+            pygame.draw.rect(screen,color,rect)
+
+            # Box outline (black)
+            pygame.draw.rect(screen, cfg.BLACK,rect, 4)
+            # Custom font implementation
+            txt_surface = custom_font.render(label,True,cfg.WHITE)
+            # Centering the text in the button
+            screen.blit(txt_surface,(rect.x + 15, rect.y + 12))
     
+    # Drawing settings button for this specific setup (this will always display it)
+    s_color = BUTTON_HOVER if settings_btn.collidepoint(mouse_pos) else BUTTON_COLOR
+    pygame.draw.rect(screen,s_color,settings_btn)
+
     #for character display (template)
-    my_pet.draw(screen)
+    #my_pet.draw(screen)
     pygame.display.flip()
 
 
