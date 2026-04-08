@@ -38,7 +38,23 @@ sleep_button = pygame.Rect(180, btn_y_pos,btn_width, btn_height)
 game_button = pygame.Rect(340, btn_y_pos, btn_width, btn_height)
 
 settings_open = False # Toggle for the settings menu
-settings_btn = pygame.Rect(cfg.WIDTH - 70, 20, 50, 50) # Placeholder for the button which is going to use the asset
+# For the raw asset image
+raw_icon = pygame.image.load(cfg.ASSETS_DIR / "settings_button.png").convert()
+raw_icon.set_colorkey(cfg.WHITE) # Don't want White background from the gear icon
+gear_area = raw_icon.get_bounding_rect()# Finding the tightest box around gear
+
+# For the icon surface and all the other stuff for filling
+cropped_icon = pygame.Surface(gear_area.size)
+cropped_icon.fill(cfg.WHITE)
+cropped_icon.set_colorkey(cfg.WHITE)
+cropped_icon.blit(raw_icon,(0,0),gear_area)
+
+#Scaling the gear
+settings_icon = pygame.transform.scale_by(cropped_icon, 3.5)
+
+# Set the settings button
+settings_btn = settings_icon.get_rect(topright=(cfg.WIDTH - 20, 20))
+
 # --- Button colors ---
 BUTTON_COLOR = (100,100,100)
 BUTTON_HOVER = (150,150,150)
@@ -204,9 +220,10 @@ while Running:
             screen.blit(txt_surface,(rect.x + 15, rect.y + 12))
     
     # Drawing settings button for this specific setup (this will always display it)
-    s_color = BUTTON_HOVER if settings_btn.collidepoint(mouse_pos) else BUTTON_COLOR
-    pygame.draw.rect(screen,s_color,settings_btn)
-
+    if settings_btn.collidepoint(mouse_pos):
+        pygame.draw.rect(screen,BUTTON_HOVER,settings_btn,border_radius=8)
+    screen.blit(settings_icon,settings_btn)
+    
     #for character display (template)
     #my_pet.draw(screen)
     pygame.display.flip()
