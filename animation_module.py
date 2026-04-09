@@ -8,7 +8,8 @@ import pygame
 class Animator:
     #Initializer
     def __init__(self,sprite_sheet_path, frame_width, frame_height, scale=1):
-        self.sheet = pygame.image.load(sprite_sheet_path).convert_alpha()
+        self.sheet = pygame.image.load(sprite_sheet_path).convert()
+        self.sheet.set_colorkey((255,255,255))
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.scale = scale

@@ -21,19 +21,34 @@ class Pet:
         self.hunger = 100
         self.happiness = 100
         self.energy = 100
-        # dummy code for now
+
+        # This line of code is going to be used for the implementation
+        # of a food inventory system
+        self.inventory = {
+            "Blueberry": 5,
+            "Raspberry": 6,
+            "Cookie": 3
+        }
+
         # This is where we put all the possible animations for the pet
         self.animations = {
-            "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 6)
+            "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 6),
             #"Hungry": Animator("Pet_idle_hungry.png",32,32,scale=4),
             #"Eating": Animator("Pet_eating.png", 32, 32, scale =4),
-            #"Sleeping": Animator("spritesheet_sleeping_animation.png", 48,48,scale = 6)
+            "Sleeping": Animator(cfg.ASSETS_DIR / "spritesheet_sleeping_animation.png", 48,48,scale = 6)
         }
         self.state = "Idle" # Set this up as the starting state for the pet
     
     def update(self,dt): # let me know if you want me to add something onto this for pet status based on weather
         self.hunger -= 0.00001 * dt
         self.happiness -= 0.000005 * dt
+        
+        # Energy Logic
+        if self.state == "Sleeping":
+            self.energy = min(100, self.energy + 0.00008 * dt) #  This is for recovering energy
+        else:
+            self.energy -= 0.000008 * dt # draining while away
+
         self.animations[self.state].update(dt) # animating the pet
 
     def draw(self, screen):
@@ -53,7 +68,12 @@ class Pet:
         print(f"Feeding: Hunger = {int(self.hunger)}")
     
     def sleep(self):
-        raise NotImplementedError
+        if self.state == "Sleeping":
+            self.change_state("Idle")
+            print("Pet woke up!")
+        else:
+            self.change_state("Sleeping")
+            print("Sleeping...")
 
     def play_game():
         raise NotImplementedError
@@ -99,24 +119,31 @@ class FoodItem:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(mouse_pos):
                 self.dragging = True
+
         elif event.type == pygame.MOUSEBUTTONUP:
             if self.dragging:
                 self.dragging = False
                 # Since we lifted the button we need 
                 # to check whether it was done by the pet's mouth for feeding
                 if self.rect.colliderect(pet_rect):
-                    my_pet.feed() # This triggers the feeding logic
+                    if my_pet.inventory[self.name] > 0:
+                        my_pet.feed() # This triggers the feeding logic
+                        my_pet.inventory[self.name] -= 1
                 
-                # Crumb particle implementation
-                for _ in range(15):
-                    particles.append(Particle(self.rect.centerx,self.rect.centery,self.particle_color))
-                self.rect.center = self.original_pos
+                        # Crumb particle implementation
+                        for _ in range(15):
+                            particles.append(Particle(self.rect.centerx,self.rect.centery,self.particle_color))
+                        self.rect.center = self.original_pos
 
     def update(self,mouse_pos):
         if self.dragging:
             self.rect.center = mouse_pos
+        else:
+            self.rect.center = self.original_pos
+
     def draw(self,screen):
-        screen.blit(self.image, self.rect)
+        if my_pet.inventory[self.name] > 0:
+            screen.blit(self.image, self.rect)
 
 # This class will be used to handle the feeding pet particles (crumbs)
 # that should happen when the user feeds the pet in the feeding menu
@@ -148,13 +175,21 @@ pygame.init()
 
 # This code is for the custom font (pixelated font)
 custom_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 32) # We will test out the font size
+small_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 18)
 
 # Window dimensions (put this on config.py?)
-#WIDTH, HEIGHT = 500, 500
 screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
 
 # Window Title (Will be changed as we progress)
-pygame.display.set_caption("Pet Project")
+pygame.display.set_caption("A Foxy Pet Project")
+
+# --- BACKGROUND IMAGES ---
+#day_bg = pygame.image.load(cfg.ASSETS_DIR / "day_background.png").convert()
+#day_bg = pygame.transform.scale(day_bg, (cfg.WIDTH,cfg.HEIGHT))
+
+#night_bg = pygame.image.load(cfg.ASSETS_DIR / "night_background.png").convert()
+#night_bg = pygame.transform.scale(night_bg, (cfg.WIDTH,cfg.HEIGHT))
+
 
 # --- FEED, SLEEP, GAME BUTTONS ---
 btn_width = 140
@@ -202,8 +237,8 @@ back_btn_rect = back_icon.get_rect(topleft=(20,20))
 
 
 
-#----------------------------------------#
-# Running parameters
+# --------------------------
+# --- RUNNING PARAMETERS --- 
 Running = True
 clock = pygame.time.Clock()
 scene = "MAIN" # for switching scenes
@@ -223,6 +258,8 @@ foods = [
 
 particles = [] # crumb particles
 
+# -------------------------------
+# --- MAIN RUNNING GAME LOOP ----
 while Running:
     dt = clock.tick(cfg.FPS)    #frame rate/delta time
     mouse_pos = pygame.mouse.get_pos()
@@ -241,8 +278,19 @@ while Running:
             if scene == "MAIN":
                 if settings_btn.collidepoint(mouse_pos):
                     settings_open = not settings_open
+
                 if not settings_open and feed_button.collidepoint(mouse_pos):
                     scene = "FEED"
+
+                    # if you click feed while sleeping, then awake the pet
+                    my_pet.change_state("Idle")
+                    
+                    for food in foods:
+                        food.dragging = False
+                        food.rect.center = food.original_pos
+
+                elif sleep_button.collidepoint(mouse_pos):
+                    my_pet.sleep()
 
             elif scene == "FEED":
                 if back_btn_rect.collidepoint(mouse_pos): 
@@ -258,6 +306,14 @@ while Running:
     if scene == "MAIN":
         # Pet Display logic for main
         my_pet.update(dt)
+
+        # If the pet is sleeping, darken the room
+        if my_pet.state == "Sleeping":
+            overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
+            overlay.set_alpha(160)
+            overlay.fill((20,20,60))
+            screen.blit(overlay,(0, 0))
+
         my_pet.draw(screen)
 
         # ---Drawing section---
@@ -322,8 +378,14 @@ while Running:
         screen.blit(back_icon,back_btn_rect)
         
         for food in foods:
-            food.update(mouse_pos)
-            food.draw(screen)
+            if my_pet.inventory[food.name] > 0:
+                food.update(mouse_pos)
+                food.draw(screen)
+
+                # This snippet is for drawing the quantity text near the slot
+                qty_text = small_font.render(f"x{my_pet.inventory[food.name]}", True, cfg.BLACK)
+                screen.blit(qty_text, (food.original_pos[0] - 20, food.original_pos[1] + 40))
+
 # this goes with the other weather comment above
         '''if asking_location:
             if event.type == pygame.KEYDOWN:
