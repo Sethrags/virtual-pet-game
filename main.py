@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 import config as cfg        # imports config file for ease of project
 from animation_module import Animator # This is for rendering images
 from weatherapp import get_weather # this is the code for the weather application - Evan
@@ -13,6 +14,133 @@ from weatherapp import get_weather # this is the code for the weather applicatio
 # game over systems
 # animation sequences
 #---------------------
+
+# This class is used for the main pet
+class Pet:
+    def __init__(self):
+        self.hunger = 100
+        self.happiness = 100
+        self.energy = 100
+        # dummy code for now
+        # This is where we put all the possible animations for the pet
+        self.animations = {
+            "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 6)
+            #"Hungry": Animator("Pet_idle_hungry.png",32,32,scale=4),
+            #"Eating": Animator("Pet_eating.png", 32, 32, scale =4),
+            #"Sleeping": Animator("spritesheet_sleeping_animation.png", 48,48,scale = 6)
+        }
+        self.state = "Idle" # Set this up as the starting state for the pet
+    
+    def update(self,dt): # let me know if you want me to add something onto this for pet status based on weather
+        self.hunger -= 0.00001 * dt
+        self.happiness -= 0.000005 * dt
+        self.animations[self.state].update(dt) # animating the pet
+
+    def draw(self, screen):
+        fox_half_size = (48 * 6) // 2 # If you change the scale, remember to change this too
+        pos_x = (cfg.WIDTH // 2) - fox_half_size
+        pos_y = (cfg.HEIGHT // 2) - fox_half_size
+        self.animations[self.state].draw(screen,pos_x,pos_y)
+
+    def change_state(self,new_state):
+        if self.state != new_state:
+            self.state = new_state
+            self.animations[self.state].current_frame = 0
+            self.animations[self.state].timer=0
+
+    def feed(self):
+        self.hunger = min(100,self.hunger + 5)
+        print(f"Feeding: Hunger = {int(self.hunger)}")
+    
+    def sleep(self):
+        raise NotImplementedError
+
+    def play_game():
+        raise NotImplementedError
+
+    '''def apply_weather_effects(self, weather):
+        if weather is None:
+            return
+        
+        category = weather[category]
+
+        if category == "cold":
+            self.energy -= 0.005 # test
+        elif category == "hot":
+            self.hunger -= 0.005 # test
+        elif category == "temperate":
+            self.happiness += 0.002 # test
+
+font = pygame.font.Sysfont(None, 32)
+user_text = ""
+asking_location = True
+weather = None'''
+
+# We need a food item class for the feeding implementation
+class FoodItem:
+    # Initializer for the food item, makes it easier for many object implementations in case we need to add more
+    def __init__(self,name,img_path,x,y):
+        self.name = name
+        # Load and scale image
+        raw_image = pygame.image.load(img_path).convert_alpha()
+        self.image = pygame.transform.scale_by(raw_image, 3)
+        self.image.set_colorkey(cfg.WHITE)
+        self.particle_color = self.image.get_at((self.image.get_width() // 2,self.image.get_height() // 2))
+        box_rect = self.image.get_bounding_rect()
+        self.rect = self.image.get_rect()
+
+        self.rect.centerx = x - (box_rect.centerx - (self.image.get_width() // 2))
+        self.rect.centery = y - (box_rect.centery - (self.image.get_height() // 2))
+
+        self.original_pos = self.rect.center
+        self.dragging = False
+
+    def handle_events(self,event,mouse_pos,pet_rect):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(mouse_pos):
+                self.dragging = True
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if self.dragging:
+                self.dragging = False
+                # Since we lifted the button we need 
+                # to check whether it was done by the pet's mouth for feeding
+                if self.rect.colliderect(pet_rect):
+                    my_pet.feed() # This triggers the feeding logic
+                
+                # Crumb particle implementation
+                for _ in range(15):
+                    particles.append(Particle(self.rect.centerx,self.rect.centery,self.particle_color))
+                self.rect.center = self.original_pos
+
+    def update(self,mouse_pos):
+        if self.dragging:
+            self.rect.center = mouse_pos
+    def draw(self,screen):
+        screen.blit(self.image, self.rect)
+
+# This class will be used to handle the feeding pet particles (crumbs)
+# that should happen when the user feeds the pet in the feeding menu
+class Particle:
+    def __init__(self,x,y,color):
+        self.x = x
+        self.y = y
+        self.color = color
+        # Random direction when feeding
+        self.vx = random.uniform(-3,3)
+        self.vy = random.uniform(-5,-1) # goes upward at first
+        self.life = 255 # so it dissapears
+
+    def update(self,dt):
+        self.x += self.vx
+        self.vy += 0.2 # acts as gravity
+        self.y += self.vy
+        self.life -= 5 # fade speed
+    
+    def draw(self,screen):
+        if self.life > 0:
+            # Display a little pixel (crumb)
+            crumb_rect = pygame.Rect(self.x, self.y, 4, 4)
+            pygame.draw.rect(screen,self.color,crumb_rect)
 
 
 # Initialize Pygame modules
@@ -74,109 +202,6 @@ back_btn_rect = back_icon.get_rect(topleft=(20,20))
 
 
 
-# main class for pet
-class Pet:
-    def __init__(self):
-        self.hunger = 100
-        self.happiness = 100
-        self.energy = 100
-        # dummy code for now
-        # This is where we put all the possible animations for the pet
-        self.animations = {
-            "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 6)
-            #"Hungry": Animator("Pet_idle_hungry.png",32,32,scale=4),
-            #"Eating": Animator("Pet_eating.png", 32, 32, scale =4),
-            #"Sleeping": Animator("spritesheet_sleeping_animation.png", 48,48,scale = 6)
-        }
-        self.state = "Idle" # Set this up as the starting state for the pet
-    
-    def update(self,dt): # let me know if you want me to add something onto this for pet status based on weather
-        self.hunger -= 0.00001 * dt
-        self.happiness -= 0.000005 * dt
-        self.animations[self.state].update(dt) # animating the pet
-
-    def draw(self, screen):
-        fox_half_size = (48 * 6) // 2 # If you change the scale, remember to change this too
-        pos_x = (cfg.WIDTH // 2) - fox_half_size
-        pos_y = (cfg.HEIGHT // 2) - fox_half_size
-        self.animations[self.state].draw(screen,pos_x,pos_y)
-
-    def change_state(self,new_state):
-        if self.state != new_state:
-            self.state = new_state
-            self.animations[self.state].current_frame = 0
-            self.animations[self.state].timer=0
-
-    def feed(self):
-        self.hunger = min(100,self.hunger + 15)
-        print(f"Feeding: Hunger = {int(self.hunger)}")
-    
-    def sleep(self):
-        raise NotImplementedError
-
-    def play_game():
-        raise NotImplementedError
-
-    '''def apply_weather_effects(self, weather):
-        if weather is None:
-            return
-        
-        category = weather[category]
-
-        if category == "cold":
-            self.energy -= 0.005 # test
-        elif category == "hot":
-            self.hunger -= 0.005 # test
-        elif category == "temperate":
-            self.happiness += 0.002 # test
-
-font = pygame.font.Sysfont(None, 32)
-user_text = ""
-asking_location = True
-weather = None'''
-
-# We need a food item class for the feeding implementation
-class FoodItem:
-    # Initializer for the food item, makes it easier for many object implementations in case we need to add more
-    def __init__(self,name,img_path,x,y):
-        self.name = name
-        # Load and scale image
-        raw_image = pygame.image.load(img_path).convert_alpha()
-        self.image = pygame.transform.scale_by(raw_image, 3)
-        self.image.set_colorkey(cfg.WHITE)
-        #self.image.set_colorkey(cfg.WHITE)
-        #self.rect = self.image.get_rect(center=(x,y))
-        #self.original_pos = (x, y)
-        #self.dragging = False
-        box_rect = self.image.get_bounding_rect()
-        self.rect = self.image.get_rect()
-
-        self.rect.centerx = x - (box_rect.centerx - (self.image.get_width() // 2))
-        self.rect.centery = y - (box_rect.centery - (self.image.get_height() // 2))
-
-        self.original_pos = self.rect.center
-        self.dragging = False
-
-    def handle_events(self,event,mouse_pos,pet_rect):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(mouse_pos):
-                self.dragging = True
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if self.dragging:
-                self.dragging = False
-
-                # Since we lifted the button we need 
-                # to check whether it was done by the pet's mouth for feeding
-                if self.rect.colliderect(pet_rect):
-                    my_pet.feed() # This triggers the feeding logic
-                self.rect.center = self.original_pos
-    def update(self,mouse_pos):
-        if self.dragging:
-            self.rect.center = mouse_pos
-    def draw(self,screen):
-        screen.blit(self.image, self.rect)
-
-
 #----------------------------------------#
 # Running parameters
 Running = True
@@ -195,6 +220,8 @@ foods = [
     FoodItem("Raspberry", cfg.ASSETS_DIR / "raspberry.png", slot2_x, slot_y),
     FoodItem("Cookie", cfg.ASSETS_DIR / "cookie.png", slot3_x, slot_y)
 ]
+
+particles = [] # crumb particles
 
 while Running:
     dt = clock.tick(cfg.FPS)    #frame rate/delta time
@@ -269,6 +296,14 @@ while Running:
         screen.blit(back_icon,back_btn_rect)
         my_pet.draw(screen)
 
+        # This snippet of code is in charge of particles and fade out
+        for p in particles[:]:
+            p.update(dt)
+            p.draw(screen)
+            if p.life <= 0:
+                particles.remove(p)
+
+        # This snippet of code in in charge of the slots from the feeding menu
         for i in range(3):
             slot_width = 80
             slot_height = 80
