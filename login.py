@@ -26,11 +26,11 @@ def run_login_screen():
     active_box = "username"
     message = ""
 
-    username_box = pygame.Rect(220, 50, 180, 32)
-    password_box = pygame.Rect(220, 100, 180, 32)
+    username_box = pygame.Rect(250, 180, 180, 32)
+    password_box = pygame.Rect(250, 230, 180, 32)
 
-    login_button = pygame.Rect(60, 200, 140, 40)
-    create_button = pygame.Rect(250, 200, 190, 40)
+    login_button = pygame.Rect(60, 330, 140, 40)
+    create_button = pygame.Rect(250, 330, 190, 40)
 
     running = True
 
@@ -98,9 +98,11 @@ def run_login_screen():
 
         username_text = label_font.render("Username:", True, (255, 255, 255))
         password_text = label_font.render("Password:", True, (255, 255, 255))
+        signin_text = label_font.render("Sign In", True, (255, 255, 255))
 
-        screen.blit(username_text, (40, 55))
-        screen.blit(password_text, (40, 105))
+        screen.blit(username_text, (60, 180))
+        screen.blit(password_text, (60, 230))
+        screen.blit(signin_text, (210, 120))
 
         user_surface = input_font.render(username, True, (255, 255, 255))
         hidden_password = "*" * len(password)
