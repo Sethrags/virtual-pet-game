@@ -8,7 +8,7 @@ def run_login_screen():
     pygame.init()
 
     width = 500
-    height = 300
+    height = 500
 
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Login")
