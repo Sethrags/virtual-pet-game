@@ -4,7 +4,7 @@ import random
 import config as cfg        # imports config file for ease of project
 from animation_module import Animator # This is for rendering images
 from weatherapp import get_weather # this is the code for the weather application - Evan
-
+from login import run_login_screen #login code import
 
 #---------------------
 # VIRTUAL PET PROJECT
@@ -258,6 +258,12 @@ foods = [
 
 particles = [] # crumb particles
 
+#login
+logged_in = run_login_screen()
+
+if not logged_in:
+    pygame.quit()
+    quit()
 # -------------------------------
 # --- MAIN RUNNING GAME LOOP ----
 while Running:
