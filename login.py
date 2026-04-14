@@ -11,7 +11,6 @@ def run_login_screen():
     height = 500
 
     screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption("Login")
 
     font_path = Path(__file__).parent / "Fonts" / "Grand9K Pixel.ttf"
 
