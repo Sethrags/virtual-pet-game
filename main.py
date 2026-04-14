@@ -40,14 +40,28 @@ class Pet:
         self.state = "Idle" # Set this up as the starting state for the pet
     
     def update(self,dt): # let me know if you want me to add something onto this for pet status based on weather
-        self.hunger -= 0.00001 * dt
-        self.happiness -= 0.000005 * dt
-        
-        # Energy Logic
+        # Speed types
+        test_speed = 0.01
+        hunger_speed_var = 0.00001
+        energy_speed_var = 0.00008
+        # Variables for testing use only
+        hunger_speed = test_speed
+        energy_speed = test_speed
+
+        # True pet stat speed
+        #hunger_speed = hunger_speed_var
+        #energy_speed = energy_speed_var
+
+        # -- Hunger Logic -- 
+        self.hunger -= hunger_speed *dt
+        self.hunger = max(0,min(100.5,self.hunger))
+
+        # -- Energy Logic --
         if self.state == "Sleeping":
-            self.energy = min(100, self.energy + 0.00008 * dt) #  This is for recovering energy
+            self.energy += energy_speed * dt
         else:
-            self.energy -= 0.000008 * dt # draining while away
+            self.energy -= energy_speed * dt
+        self.energy = max(0, min(100.5,self.energy))
 
         self.animations[self.state].update(dt) # animating the pet
 
@@ -63,10 +77,22 @@ class Pet:
             self.animations[self.state].current_frame = 0
             self.animations[self.state].timer=0
 
-    def feed(self):
-        self.hunger = min(100,self.hunger + 5)
-        print(f"Feeding: Hunger = {int(self.hunger)}")
-    
+    def feed(self, food_name):
+        # Food values for different foods
+        food_values = {
+            "Blueberry": 5,
+            "Raspberry": 10,
+            "Cookie": 25
+        }
+        # This gets the value of the food, if not found, then 5 is the default
+        value = food_values.get(food_name, 5)
+
+        # Increase hunger
+        self.hunger = min(100.5, self.hunger + value)
+
+        # for testing: seeing in the console food values
+        print(f"Fed {food_name}: Hunger = {int(self.hunger)}")
+
     def sleep(self):
         if self.state == "Sleeping":
             self.change_state("Idle")
@@ -127,7 +153,7 @@ class FoodItem:
                 # to check whether it was done by the pet's mouth for feeding
                 if self.rect.colliderect(pet_rect):
                     if my_pet.inventory[self.name] > 0:
-                        my_pet.feed() # This triggers the feeding logic
+                        my_pet.feed(self.name) # This triggers the feeding logic
                         my_pet.inventory[self.name] -= 1
                 
                         # Crumb particle implementation
@@ -176,6 +202,7 @@ pygame.init()
 # This code is for the custom font (pixelated font)
 custom_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 32) # We will test out the font size
 small_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 18)
+medium_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 24)
 
 # Window dimensions (put this on config.py?)
 screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
@@ -235,7 +262,39 @@ cropped_back_icon.blit(raw_back_icon, (0,0), back_icon_area)
 back_icon = pygame.transform.scale_by(cropped_back_icon, 4)
 back_btn_rect = back_icon.get_rect(topleft=(20,20))
 
+# --- INFORMATION BUTTON ICON ---
+raw_info_icon = pygame.image.load(cfg.ASSETS_DIR / "information_button_icon.png").convert()
+raw_info_icon.set_colorkey(cfg.WHITE)
+# Find the tightest box around the info icon
+info_icon_area = raw_info_icon.get_bounding_rect()
 
+cropped_info_icon = pygame.Surface(info_icon_area.size)
+cropped_info_icon.fill(cfg.WHITE)
+cropped_info_icon.set_colorkey(cfg.WHITE)
+cropped_info_icon.blit(raw_info_icon, (0,0), info_icon_area)
+
+info_icon = pygame.transform.scale_by(cropped_info_icon, 4)
+info_icon_rect = info_icon.get_rect(topright=(cfg.WIDTH - 20, 20)) # will change to appropriate location
+
+# --- STAT ICONS ---
+energy_icon = pygame.transform.scale_by(pygame.image.load(cfg.ASSETS_DIR / "energy_icon.png").convert(), 2.25)
+energy_icon.set_colorkey(cfg.WHITE)
+hunger_icon = pygame.transform.scale_by(pygame.image.load(cfg.ASSETS_DIR / "hunger_food_icon.png").convert(), 3.5)
+hunger_icon.set_colorkey(cfg.WHITE)
+
+# We need a function to display the icons
+def draw_stats(screen):
+    # Energy Icon
+    e_x, e_y = 100, -5 # x and y for easier implementation
+    screen.blit(energy_icon, (e_x,e_y))
+    energy_txt = medium_font.render(f"{int(my_pet.energy)}%",True,cfg.BLACK)
+    screen.blit(energy_txt, (e_x + 80, e_y + 35))
+
+    # Hunger Icon
+    h_x, h_y = 200, -30
+    screen.blit(hunger_icon, (h_x, h_y))
+    hunger_txt = medium_font.render(f"{int(my_pet.hunger)}%", True, cfg.BLACK)
+    screen.blit(hunger_txt, (h_x + 105, h_y + 59))
 
 # --------------------------
 # --- RUNNING PARAMETERS --- 
@@ -258,12 +317,17 @@ foods = [
 
 particles = [] # crumb particles
 
-#login
+
+# Login Implementation
 logged_in = run_login_screen()
 
 if not logged_in:
     pygame.quit()
     quit()
+
+# After the initial log in screen, reset clock so it doesn't accumulate dt
+clock.tick()
+
 # -------------------------------
 # --- MAIN RUNNING GAME LOOP ----
 while Running:
@@ -321,6 +385,8 @@ while Running:
             screen.blit(overlay,(0, 0))
 
         my_pet.draw(screen)
+        # added stat info display
+        draw_stats(screen)
 
         # ---Drawing section---
         if settings_open:
@@ -353,9 +419,20 @@ while Running:
             pygame.draw.rect(screen,BUTTON_HOVER,settings_btn,border_radius=8)
         screen.blit(settings_icon,settings_btn)
 
+
     elif scene == "FEED":
         my_pet.update(dt)
         screen.blit(back_icon,back_btn_rect)
+        draw_stats(screen)
+
+        # Information icon functionality
+        screen.blit(info_icon,info_icon_rect)
+
+        if info_icon_rect.collidepoint(mouse_pos):
+            feed_instrs = small_font.render("Drag food to the pet to feed!",True, cfg.BLACK)
+            # text position
+            screen.blit(feed_instrs, (info_icon_rect.left - 330, info_icon_rect.y + 50))
+
         my_pet.draw(screen)
 
         # This snippet of code is in charge of particles and fade out

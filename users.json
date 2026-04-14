@@ -1,8 +1,8 @@
 {
     "users": [
         {
-            "username": "User1",
-            "password": "27a534a25cf745b6c985eb782079a6fe8641b00003dada14f392a2d01b9c790a"
+            "username": "admin",
+            "password": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
         }
     ]
 }
