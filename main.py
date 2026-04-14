@@ -25,8 +25,8 @@ class Pet:
         # This line of code is going to be used for the implementation
         # of a food inventory system
         self.inventory = {
-            "Blueberry": 5,
-            "Raspberry": 6,
+            "Blueberry": 7,
+            "Raspberry": 5,
             "Cookie": 3
         }
 
@@ -41,7 +41,7 @@ class Pet:
     
     def update(self,dt): # let me know if you want me to add something onto this for pet status based on weather
         # Speed types
-        test_speed = 0.01
+        test_speed = 0.001
         hunger_speed_var = 0.00001
         energy_speed_var = 0.00008
         # Variables for testing use only
