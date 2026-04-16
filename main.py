@@ -6,6 +6,7 @@ from animation_module import Animator # This is for rendering images
 from weatherapp import get_weather # this is the code for the weather application - Evan
 from login import run_login_screen #login code import
 from flappy_game import run_flappy_game #flappybird Game import
+import snake
 
 #---------------------
 # VIRTUAL PET PROJECT
@@ -303,7 +304,7 @@ sleep_button = pygame.Rect(180, btn_y_pos,btn_width, btn_height)
 game_button = pygame.Rect(340, btn_y_pos, btn_width, btn_height)
 
 flappy_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 170, 240, 70)
-future_game_button_1 = pygame.Rect(cfg.WIDTH // 2 - 120, 270, 240, 70)
+snake_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 270, 240, 70)
 future_game_button_2 = pygame.Rect(cfg.WIDTH // 2 - 120, 370, 240, 70)
 
 settings_open = False # Toggle for the settings menu
@@ -482,8 +483,9 @@ while Running:
                     my_pet.inventory["Blueberry"] += blueberries_earned
                     clock.tick()    
 
-                elif future_game_button_1.collidepoint(mouse_pos):
-                    print("future game 1 goes here")
+                elif snake_select_button.collidepoint(mouse_pos):
+                    snake.run_snake_game(screen)
+                    clock.tick()
 
                 elif future_game_button_2.collidepoint(mouse_pos):
                     print("future game 2 goes here")
@@ -636,7 +638,7 @@ while Running:
 
         for rect, label in [
             (flappy_select_button, "FLAPPY"),
-            (future_game_button_1, "COMING SOON"),
+            (snake_select_button, "SNAKE"),
             (future_game_button_2, "COMING SOON")
         ]:
             color = BUTTON_HOVER if rect.collidepoint(mouse_pos) else BUTTON_COLOR
