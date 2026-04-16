@@ -478,8 +478,9 @@ while Running:
                     scene = "MAIN"
 
                 elif flappy_select_button.collidepoint(mouse_pos):
-                    result = run_flappy_game()
-                    clock.tick()
+                    result, blueberries_earned = run_flappy_game(screen=screen)
+                    my_pet.inventory["Blueberry"] += blueberries_earned
+                    clock.tick()    
 
                 elif future_game_button_1.collidepoint(mouse_pos):
                     print("future game 1 goes here")
