@@ -12,8 +12,8 @@ WHITE = (255, 255, 255)
 
 def run_snake_game(screen):
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("Arial", 28)
-    big_font = pygame.font.SysFont("Arial", 48)
+    font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 24)
+    big_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 48)
 
     # Snake initial settings
     snake_pos = [[100, 100], [80, 100], [60, 100]]
@@ -43,35 +43,45 @@ def run_snake_game(screen):
         text = font.render(f"Score: {score}", True, WHITE)
         screen.blit(text, (10, 10))
 
+    # -------------------------
+    # START SCREEN
+    # -------------------------
     waiting = True
     while waiting:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return
+                return None
             if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
                 waiting = False  # start the game
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                return  # return to menu
+                return None  # return to menu
 
         screen.fill(BLACK)
         title = big_font.render("SNAKE", True, ORANGE)
-        prompt = font.render("Click or Press Any Key to Start", True, WHITE)
+        move1 = font.render("Use W A S D or Arrow Keys to Move", True, WHITE)
+        move2 = font.render("Press ESC to Return to Menu", True, WHITE)
+        prompt = font.render("Click or Press Any Key to Start", True, ORANGE)
 
-        screen.blit(title, (cfg.WIDTH//2 - title.get_width()//2, cfg.HEIGHT//2 - 80))
-        screen.blit(prompt, (cfg.WIDTH//2 - prompt.get_width()//2, cfg.HEIGHT//2))
+        screen.blit(title, (cfg.WIDTH//2 - title.get_width()//2, cfg.HEIGHT//2 - 120))
+        screen.blit(move1, (cfg.WIDTH//2 - move1.get_width()//2, cfg.HEIGHT//2 - 40))
+        screen.blit(move2, (cfg.WIDTH//2 - move2.get_width()//2, cfg.HEIGHT//2))
+        screen.blit(prompt, (cfg.WIDTH//2 - prompt.get_width()//2, cfg.HEIGHT//2 + 80))
 
         pygame.display.update()
         clock.tick(30)
 
+    # -------------------------
+    # MAIN GAME LOOP
+    # -------------------------
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return
+                return None
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return  # return to pet game menu
+                    return None  # return to pet game menu
 
                 if (event.key in (pygame.K_UP, pygame.K_w)) and direction != "DOWN":
                     direction = "UP"
@@ -106,11 +116,11 @@ def run_snake_game(screen):
 
         # Wall collision
         if x < 0 or x >= cfg.WIDTH or y < 0 or y >= cfg.HEIGHT:
-            return
+            break
 
         # Self collision
         if new_head in snake_pos[1:]:
-            return
+            break
 
         # Draw everything
         screen.fill(BLACK)
@@ -120,3 +130,43 @@ def run_snake_game(screen):
 
         pygame.display.update()
         clock.tick(10)
+
+    # rewards
+    rewards = {
+        "Blueberry": score // 5,
+        "Raspberry": score // 10,
+        "Cookie": 1 if score >= 20 else 0
+    }
+
+    summary_running = True
+    while summary_running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return rewards
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                summary_running = False
+
+        screen.fill(BLACK)
+
+        title = big_font.render(f"GAME OVER", True, ORANGE)
+        reward_title = font.render("Rewards Earned:", True, WHITE)
+
+        b_txt = font.render(f"Blueberries: {rewards['Blueberry']}", True, WHITE)
+        r_txt = font.render(f"Raspberries: {rewards['Raspberry']}", True, WHITE)
+        c_txt = font.render(f"Cookies: {rewards['Cookie']}", True, WHITE)
+
+        prompt = font.render("Press Any Key to Continue", True, ORANGE)
+
+        screen.blit(title, (cfg.WIDTH//2 - title.get_width()//2, 150))
+        screen.blit(reward_title, (cfg.WIDTH//2 - reward_title.get_width()//2, 230))
+
+        screen.blit(b_txt, (cfg.WIDTH//2 - b_txt.get_width()//2, 290))
+        screen.blit(r_txt, (cfg.WIDTH//2 - r_txt.get_width()//2, 330))
+        screen.blit(c_txt, (cfg.WIDTH//2 - c_txt.get_width()//2, 370))
+
+        screen.blit(prompt, (cfg.WIDTH//2 - prompt.get_width()//2, 450))
+        
+        pygame.display.update()
+        clock.tick(30)
+
+    return rewards

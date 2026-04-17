@@ -484,7 +484,14 @@ while Running:
                     clock.tick()    
 
                 elif snake_select_button.collidepoint(mouse_pos):
-                    snake.run_snake_game(screen)
+                    rewards = snake.run_snake_game(screen)
+                    
+                    if rewards:
+                        my_pet.inventory["Blueberry"] += rewards["Blueberry"]
+                        my_pet.inventory["Raspberry"] += rewards["Raspberry"]
+                        my_pet.inventory["Cookie"] += rewards["Cookie"]
+
+                        print("Rewards: ", rewards)
                     clock.tick()
 
                 elif future_game_button_2.collidepoint(mouse_pos):
