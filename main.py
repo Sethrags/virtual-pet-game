@@ -7,7 +7,50 @@ from weatherapp import get_weather # this is the code for the weather applicatio
 from login import run_login_screen #login code import
 from flappy_game import run_flappy_game #flappybird Game import
 import snake
-import PySimpleGUI as sg
+
+def pygame_text_input(prompt="Enter text:", max_length=20):
+    input_text = ""
+    font = pygame.font.Font(None, 36)
+
+    # Create a semi-transparent overlay
+    overlay = pygame.Surface((cfg.WIDTH, cfg.HEIGHT))
+    overlay.set_alpha(180)
+    overlay.fill((0, 0, 0))
+
+    input_box = pygame.Rect(cfg.WIDTH//2 - 150, cfg.HEIGHT//2, 300, 50)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return input_text
+
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+
+                elif len(input_text) < max_length:
+                    input_text += event.unicode
+
+        # Draw overlay
+        screen.blit(overlay, (0, 0))
+
+        # Draw prompt
+        prompt_surf = font.render(prompt, True, cfg.WHITE)
+        screen.blit(prompt_surf, (cfg.WIDTH//2 - prompt_surf.get_width()//2,
+                                  cfg.HEIGHT//2 - 60))
+
+        # Draw input box
+        pygame.draw.rect(screen, cfg.WHITE, input_box, 2)
+
+        # Draw text
+        text_surf = font.render(input_text, True, cfg.WHITE)
+        screen.blit(text_surf, (input_box.x + 10, input_box.y + 10))
+
+        pygame.display.flip()
 
 def ask_for_location():
     layout = [
@@ -471,7 +514,7 @@ while Running:
                     settings_open = not settings_open
 
                 elif settings_open and change_weather_btn.collidepoint(mouse_pos):
-                    location = ask_for_location()
+                    location = pygame_text_input("Enter City Name: ")
                     if location:
                         current_location = location
                         current_weather = get_weather(location)
