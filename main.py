@@ -7,7 +7,21 @@ from weatherapp import get_weather # this is the code for the weather applicatio
 from login import run_login_screen #login code import
 from flappy_game import run_flappy_game #flappybird Game import
 import snake
+import PySimpleGUI as sg
 
+def ask_for_location():
+    layout = [
+        [sg.Text("Enter City Name:")],
+        [sg.Input(key="-CITY-")],
+        [sg.Button("OK"), sg.Button("Cancel")]
+    ]
+    window = sg.Window("Change Location", layout)
+    event, values = window.read()
+    window.close()
+
+    if event == "OK":
+        return values["-CITY-"]
+    return None
 #---------------------
 # VIRTUAL PET PROJECT
 #---------------------
@@ -135,24 +149,16 @@ class Pet:
 
     def play_game():
         raise NotImplementedError
-
-    '''def apply_weather_effects(self, weather):
-        if weather is None:
-            return
-        
-        category = weather[category]
-
+    
+    # Apply effects to pet pased on current weather if location present
+    def apply_weather_effects(self, category):
         if category == "cold":
-            self.energy -= 0.005 # test
+            self.energy = max(0, self.energy - 0.02)
         elif category == "hot":
-            self.hunger -= 0.005 # test
+            self.hunger = max(0, self.hunger - 0.02)
         elif category == "temperate":
-            self.happiness += 0.002 # test
+            self.happiness = min(100, self.happiness + 0.01)
 
-font = pygame.font.Sysfont(None, 32)
-user_text = ""
-asking_location = True
-weather = None'''
 
 # We need a food item class for the feeding implementation
 class FoodItem:
@@ -307,6 +313,8 @@ flappy_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 170, 240, 70)
 snake_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 270, 240, 70)
 future_game_button_2 = pygame.Rect(cfg.WIDTH // 2 - 120, 370, 240, 70)
 
+change_weather_btn = pygame.Rect(cfg.WIDTH//2 - 140, 320, 280, 60)
+
 settings_open = False # Toggle for the settings menu
 
 # --- SETTINGS BUTTON and BUTTON ICON-- 
@@ -383,7 +391,11 @@ def draw_stats(screen):
     hunger_txt = medium_font.render(f"{int(my_pet.hunger)}%", True, hunger_color)
     screen.blit(hunger_txt, (h_x + 105, h_y + 59))
 
-
+def draw_location(screen):
+    if current_location and current_weather:
+        category = current_weather.get("category", "").capitalize()
+        txt = small_font.render(f"{current_location}: {category}", True, cfg.BLACK)
+        screen.blit(txt, (20, 60))
 # --------------------------
 # --- RUNNING PARAMETERS --- 
 # --------------------------
@@ -392,6 +404,10 @@ Running = True
 clock = pygame.time.Clock()
 scene = "MAIN" # for switching scenes
 my_pet = Pet() # Initialize pet
+
+# weather
+current_location = None
+current_weather = None
 
 # Initialize food items
 slot1_x = cfg.WIDTH // 6
@@ -454,6 +470,12 @@ while Running:
                 if settings_btn.collidepoint(mouse_pos):
                     settings_open = not settings_open
 
+                elif settings_open and change_weather_btn.collidepoint(mouse_pos):
+                    location = ask_for_location()
+                    if location:
+                        current_location = location
+                        current_weather = get_weather(location)
+
                 if not settings_open and feed_button.collidepoint(mouse_pos):
                     scene = "FEED"
 
@@ -463,6 +485,7 @@ while Running:
                     for food in foods:
                         food.dragging = False
                         food.rect.center = food.original_pos
+                
 
                 elif sleep_button.collidepoint(mouse_pos):
                     my_pet.sleep()
@@ -550,6 +573,7 @@ while Running:
         my_pet.draw(screen)
         # added stat info display
         draw_stats(screen)
+        draw_location(screen)
 
         # ---Drawing section---
         if settings_open:
@@ -562,6 +586,21 @@ while Running:
             back_text = custom_font.render("Click SETTINGS Box to close",True,cfg.WHITE)
             screen.blit(s_text, (cfg.WIDTH//2 - 100, 150))
             screen.blit(back_text,(cfg.WIDTH//2 - 150, 250))
+
+            pygame.draw.rect(
+                screen,
+                BUTTON_HOVER if
+                change_weather_btn.collidepoint(mouse_pos) else BUTTON_COLOR,
+                    change_weather_btn
+            )
+            pygame.draw.rect(screen, cfg.BLACK, change_weather_btn, 3)
+
+            txt = small_font.render("CHANGE LOCATION", True, cfg.WHITE)
+            screen.blit(
+                txt,
+                (change_weather_btn.centerx - txt.get_width() // 2,
+                 change_weather_btn.centery - txt.get_height() // 2)
+            )
 
         else:
             # Button Drawing Implementation
@@ -654,27 +693,6 @@ while Running:
             txt = small_font.render(label, True, cfg.WHITE)
             screen.blit(txt, (rect.x + (rect.width - txt.get_width()) // 2,
                                rect.y + (rect.height - txt.get_height()) // 2))
-# this goes with the other weather comment above
-        '''if asking_location:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    weather = get_weather(user_text)
-                    asking_location = False
-                elif event.key == pygame.K_BACKSPACE:
-                    user.text = user_text[:-1]
-                else:
-                    user_text += event.unicode
-        
-    if asking_location:
-        screen.fill((255,255,255))
-        prompt = font.render("Enter city", True (0,0,0))
-        text_surface = font.render(user_text, True, (0,0,0))
-
-        screen.blit(prompt, (20, 20))
-        screen.blit(text_surface, (20, 60))
-
-        pygame.display.flip()
-        continue'''
     
     # WHITE = (255,255,255)
     #screen.fill(cfg.WHITE) # white screen for now
