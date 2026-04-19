@@ -52,19 +52,6 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
 
         pygame.display.flip()
 
-def ask_for_location():
-    layout = [
-        [sg.Text("Enter City Name:")],
-        [sg.Input(key="-CITY-")],
-        [sg.Button("OK"), sg.Button("Cancel")]
-    ]
-    window = sg.Window("Change Location", layout)
-    event, values = window.read()
-    window.close()
-
-    if event == "OK":
-        return values["-CITY-"]
-    return None
 #---------------------
 # VIRTUAL PET PROJECT
 #---------------------
