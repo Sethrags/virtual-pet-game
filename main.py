@@ -439,6 +439,19 @@ def draw_location(screen):
         category = current_weather.get("category", "").capitalize()
         txt = small_font.render(f"{current_location}: {category}", True, cfg.BLACK)
         screen.blit(txt, (20, 60))
+
+def apply_weather_tint(screen, category):
+    tint = pygame.Surface((cfg.WIDTH, cfg.HEIGHT))
+    tint.set_alpha(80)
+
+    if category == "cold":
+        tint.fill((50, 80, 200))
+    elif category == "hot":
+        tint.fill((255, 120, 60))
+    elif category == "temperate":
+        return
+    
+    screen.blit(tint, (0, 0))
 # --------------------------
 # --- RUNNING PARAMETERS --- 
 # --------------------------
@@ -598,6 +611,9 @@ while Running:
         cloud.draw(screen)
         
     screen.blit(background,(0,0))
+
+    if current_weather:
+        apply_weather_tint(screen, current_weather.get("category"))
 
 
 
