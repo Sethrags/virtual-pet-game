@@ -5,6 +5,52 @@ import config as cfg        # imports config file for ease of project
 from animation_module import Animator # This is for rendering images
 from weatherapp import get_weather # this is the code for the weather application - Evan
 from login import run_login_screen #login code import
+from flappy_game import run_flappy_game #flappybird Game import
+import snake
+
+def pygame_text_input(prompt="Enter text:", max_length=20):
+    input_text = ""
+    font = pygame.font.Font(None, 36)
+
+    # Create a semi-transparent overlay
+    overlay = pygame.Surface((cfg.WIDTH, cfg.HEIGHT))
+    overlay.set_alpha(180)
+    overlay.fill((0, 0, 0))
+
+    input_box = pygame.Rect(cfg.WIDTH//2 - 150, cfg.HEIGHT//2, 300, 50)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return input_text
+
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+
+                elif len(input_text) < max_length:
+                    input_text += event.unicode
+
+        # Draw overlay
+        screen.blit(overlay, (0, 0))
+
+        # Draw prompt
+        prompt_surf = font.render(prompt, True, cfg.WHITE)
+        screen.blit(prompt_surf, (cfg.WIDTH//2 - prompt_surf.get_width()//2,
+                                  cfg.HEIGHT//2 - 60))
+
+        # Draw input box
+        pygame.draw.rect(screen, cfg.WHITE, input_box, 2)
+
+        # Draw text
+        text_surf = font.render(input_text, True, cfg.WHITE)
+        screen.blit(text_surf, (input_box.x + 10, input_box.y + 10))
+
+        pygame.display.flip()
 
 #---------------------
 # VIRTUAL PET PROJECT
@@ -14,6 +60,14 @@ from login import run_login_screen #login code import
 # game over systems
 # animation sequences
 #---------------------
+
+# Window dimensions (put this on config.py?)
+screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
+
+# This will be used for a night overlay in the window
+night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
+night_overlay.set_alpha(120) # This is the brightness adjustment
+night_overlay.fill((10,10,40))
 
 # This class is used for the main pet
 class Pet:
@@ -33,13 +87,15 @@ class Pet:
         # This is where we put all the possible animations for the pet
         self.animations = {
             "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 6),
-            #"Hungry": Animator("Pet_idle_hungry.png",32,32,scale=4),
-            #"Eating": Animator("Pet_eating.png", 32, 32, scale =4),
+            "Hungry": Animator(cfg.ASSETS_DIR / "spritesheet_idle_sad_animation.png",48, 48, scale = 6),
+            "Tired": Animator(cfg.ASSETS_DIR / "spritesheet_tired_animation.png",48, 48, scale = 6),
+            "Sad_Tired": Animator(cfg.ASSETS_DIR / "spritesheet_tired_sad_animation.png",48, 48, scale = 6),
+            "Eating": Animator(cfg.ASSETS_DIR / "spritesheet_feed_animation.png", 48, 48, scale =6),
             "Sleeping": Animator(cfg.ASSETS_DIR / "spritesheet_sleeping_animation.png", 48,48,scale = 6)
         }
         self.state = "Idle" # Set this up as the starting state for the pet
     
-    def update(self,dt): # let me know if you want me to add something onto this for pet status based on weather
+    def update(self,dt): 
         # Speed types
         test_speed = 0.001
         hunger_speed_var = 0.00001
@@ -62,6 +118,26 @@ class Pet:
         else:
             self.energy -= energy_speed * dt
         self.energy = max(0, min(100.5,self.energy))
+
+        # --- ANIMATION CHANGE STATES LOGIC FOR SAD ---
+        # When the pet sleeps, it's doesnt display sad animation
+        if self.state not in ["Sleeping", "Eating"]:
+            is_hungry = self.hunger < 15
+            is_tired = self.energy < 15
+
+            # Both conditions (hungry and tired)
+            if is_hungry and is_tired:
+                self.change_state("Sad_Tired")
+
+            elif is_hungry:
+                self.change_state("Hungry")
+            
+            elif is_tired:
+                self.change_state("Tired")
+
+            else:
+                self.change_state("Idle")
+
 
         self.animations[self.state].update(dt) # animating the pet
 
@@ -103,24 +179,16 @@ class Pet:
 
     def play_game():
         raise NotImplementedError
-
-    '''def apply_weather_effects(self, weather):
-        if weather is None:
-            return
-        
-        category = weather[category]
-
+    
+    # Apply effects to pet pased on current weather if location present
+    def apply_weather_effects(self, category):
         if category == "cold":
-            self.energy -= 0.005 # test
+            self.energy = max(0, self.energy - 0.02)
         elif category == "hot":
-            self.hunger -= 0.005 # test
+            self.hunger = max(0, self.hunger - 0.02)
         elif category == "temperate":
-            self.happiness += 0.002 # test
+            self.happiness = min(100, self.happiness + 0.01)
 
-font = pygame.font.Sysfont(None, 32)
-user_text = ""
-asking_location = True
-weather = None'''
 
 # We need a food item class for the feeding implementation
 class FoodItem:
@@ -195,8 +263,57 @@ class Particle:
             crumb_rect = pygame.Rect(self.x, self.y, 4, 4)
             pygame.draw.rect(screen,self.color,crumb_rect)
 
+# --- DYNAMIC CLOUDS ON BACKGROUND ---
+cloud_images = []
+for name in ["cloud_1.png","cloud_2.png","cloud_3.png"]:
+    img = pygame.image.load(cfg.ASSETS_DIR / name).convert()
+    img.set_colorkey(cfg.BLACK)
+    cloud_images.append(img)
 
-# Initialize Pygame modules
+# Scaling the clouds
+cloud_images = [pygame.transform.scale_by(img, 2) for img in cloud_images]
+
+
+# Main class for cloud objects
+class cloud:
+    def __init__(self):
+        self.image = random.choice(cloud_images)
+
+        self.x = random.randint(0, cfg.WIDTH)
+        self.y = random.randint(0,25) # only go to top section
+
+        self.speed = random.uniform(0.02, 0.08)
+
+    def update(self, dt):
+        self.x += self.speed * dt
+
+        # reset when it is offscreen
+        if self.x > cfg.WIDTH + 100:
+            self.x = -100
+            self.y = random.randint(0,100)
+            self.image = random.choice(cloud_images)
+    def draw(self,screen):
+        screen.blit(self.image, (self.x,self.y))
+
+# Class for stars for when night is toggled
+class Star:
+    def __init__(self):
+        self.x = random.randint(0,cfg.WIDTH)
+        self.y = random.randint(0, int(cfg.HEIGHT * 0.5))
+        self.speed = random.uniform(0.02, 0.06)
+        self.size = random.randint(1,3)
+    def update(self):
+        self.x -= self.speed
+        if self.x < 0:
+            self.x = cfg.WIDTH
+            self.y = random.randint(0, int(cfg.HEIGHT * 0.5))
+    def draw(self, surface):
+        pygame.draw.circle(surface, (255,255,255), (int(self.x),int(self.y)),self.size)
+
+# -------------------------
+# ---     VARIABLES     ---
+# -------------------------
+
 pygame.init()
 
 # This code is for the custom font (pixelated font)
@@ -204,19 +321,15 @@ custom_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 32) # We wil
 small_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 18)
 medium_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 24)
 
-# Window dimensions (put this on config.py?)
-screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
-
 # Window Title (Will be changed as we progress)
 pygame.display.set_caption("A Foxy Pet Project")
 
 # --- BACKGROUND IMAGES ---
-#day_bg = pygame.image.load(cfg.ASSETS_DIR / "day_background.png").convert()
-#day_bg = pygame.transform.scale(day_bg, (cfg.WIDTH,cfg.HEIGHT))
-
-#night_bg = pygame.image.load(cfg.ASSETS_DIR / "night_background.png").convert()
-#night_bg = pygame.transform.scale(night_bg, (cfg.WIDTH,cfg.HEIGHT))
-
+background = pygame.image.load(cfg.ASSETS_DIR / "background.png").convert()
+background = pygame.transform.scale(background, (cfg.WIDTH,cfg.HEIGHT))
+background.set_colorkey(cfg.WHITE)
+# Sky color: can be set to any value (for weather as well)
+SKY_COLOR = (135,206,235)
 
 # --- FEED, SLEEP, GAME BUTTONS ---
 btn_width = 140
@@ -225,6 +338,12 @@ btn_y_pos = cfg.HEIGHT - 80
 feed_button = pygame.Rect(20, btn_y_pos, btn_width, btn_height)
 sleep_button = pygame.Rect(180, btn_y_pos,btn_width, btn_height)
 game_button = pygame.Rect(340, btn_y_pos, btn_width, btn_height)
+
+flappy_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 170, 240, 70)
+snake_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 270, 240, 70)
+future_game_button_2 = pygame.Rect(cfg.WIDTH // 2 - 120, 370, 240, 70)
+
+change_weather_btn = pygame.Rect(cfg.WIDTH//2 - 140, 320, 280, 60)
 
 settings_open = False # Toggle for the settings menu
 
@@ -282,26 +401,56 @@ energy_icon.set_colorkey(cfg.WHITE)
 hunger_icon = pygame.transform.scale_by(pygame.image.load(cfg.ASSETS_DIR / "hunger_food_icon.png").convert(), 3.5)
 hunger_icon.set_colorkey(cfg.WHITE)
 
-# We need a function to display the icons
+# -- DISPLAY ICONS --
 def draw_stats(screen):
+    # Colors for the icons
+    NORMAL = cfg.BLACK
+    LOW = (255,0,0) # Red when stats are low
+
     # Energy Icon
     e_x, e_y = 100, -5 # x and y for easier implementation
     screen.blit(energy_icon, (e_x,e_y))
-    energy_txt = medium_font.render(f"{int(my_pet.energy)}%",True,cfg.BLACK)
+    energy_color = LOW if my_pet.energy < 15 else NORMAL
+    energy_txt = medium_font.render(f"{int(my_pet.energy)}%",True,energy_color)
     screen.blit(energy_txt, (e_x + 80, e_y + 35))
 
     # Hunger Icon
     h_x, h_y = 200, -30
     screen.blit(hunger_icon, (h_x, h_y))
-    hunger_txt = medium_font.render(f"{int(my_pet.hunger)}%", True, cfg.BLACK)
+    hunger_color = LOW if my_pet.hunger < 15 else NORMAL
+    hunger_txt = medium_font.render(f"{int(my_pet.hunger)}%", True, hunger_color)
     screen.blit(hunger_txt, (h_x + 105, h_y + 59))
 
+def draw_location(screen):
+    if current_location and current_weather:
+        category = current_weather.get("category", "").capitalize()
+        txt = small_font.render(f"{current_location}: {category}", True, cfg.BLACK)
+        screen.blit(txt, (20, 60))
+
+def apply_weather_tint(screen, category):
+    tint = pygame.Surface((cfg.WIDTH, cfg.HEIGHT))
+    tint.set_alpha(80)
+
+    if category == "cold":
+        tint.fill((50, 80, 200))
+    elif category == "hot":
+        tint.fill((255, 120, 60))
+    elif category == "temperate":
+        return
+    
+    screen.blit(tint, (0, 0))
 # --------------------------
 # --- RUNNING PARAMETERS --- 
+# --------------------------
+
 Running = True
 clock = pygame.time.Clock()
 scene = "MAIN" # for switching scenes
 my_pet = Pet() # Initialize pet
+
+# weather
+current_location = None
+current_weather = None
 
 # Initialize food items
 slot1_x = cfg.WIDTH // 6
@@ -317,16 +466,23 @@ foods = [
 
 particles = [] # crumb particles
 
+# Initialize cloud objects
+clouds = [cloud() for _ in range(3)] # number of clouds
+
+# Initialize star objects
+stars = [Star() for _ in range(40)] # Number of stars
 
 # Login Implementation
-logged_in = run_login_screen()
+logged_in = run_login_screen(screen=screen, pet=my_pet, game_clock=clock)
 
 if not logged_in:
     pygame.quit()
     quit()
 
+
 # After the initial log in screen, reset clock so it doesn't accumulate dt
 clock.tick()
+
 
 # -------------------------------
 # --- MAIN RUNNING GAME LOOP ----
@@ -337,6 +493,14 @@ while Running:
     # Mouth Hitbox (Feeding)
     pet_rect = pygame.Rect(cfg.WIDTH // 2 - 40, cfg.HEIGHT // 2 - 40, 80, 80)
     
+    # Cloud Implementation
+    for cloud in clouds:
+        cloud.update(dt)
+
+    # Stars Implementation
+    for star in stars:
+        star.update()
+
     # Event Handler
     for event in pygame.event.get():
         # Quit button
@@ -349,6 +513,12 @@ while Running:
                 if settings_btn.collidepoint(mouse_pos):
                     settings_open = not settings_open
 
+                elif settings_open and change_weather_btn.collidepoint(mouse_pos):
+                    location = pygame_text_input("Enter City Name: ")
+                    if location:
+                        current_location = location
+                        current_weather = get_weather(location)
+
                 if not settings_open and feed_button.collidepoint(mouse_pos):
                     scene = "FEED"
 
@@ -358,24 +528,86 @@ while Running:
                     for food in foods:
                         food.dragging = False
                         food.rect.center = food.original_pos
+                
 
                 elif sleep_button.collidepoint(mouse_pos):
                     my_pet.sleep()
-
+                    
+                elif not settings_open and game_button.collidepoint(mouse_pos):
+                    scene = "GAME_MENU"
+                
             elif scene == "FEED":
                 if back_btn_rect.collidepoint(mouse_pos): 
                     scene = "MAIN"
+            
+            elif scene == "GAME_MENU":
+                if back_btn_rect.collidepoint(mouse_pos):
+                    scene = "MAIN"
+
+                elif flappy_select_button.collidepoint(mouse_pos):
+                    result, blueberries_earned = run_flappy_game(screen=screen)
+                    my_pet.inventory["Blueberry"] += blueberries_earned
+                    clock.tick()    
+
+                elif snake_select_button.collidepoint(mouse_pos):
+                    rewards = snake.run_snake_game(screen)
+                    
+                    if rewards:
+                        my_pet.inventory["Blueberry"] += rewards["Blueberry"]
+                        my_pet.inventory["Raspberry"] += rewards["Raspberry"]
+                        my_pet.inventory["Cookie"] += rewards["Cookie"]
+
+                        print("Rewards: ", rewards)
+                    clock.tick()
+
+                elif future_game_button_2.collidepoint(mouse_pos):
+                    print("future game 2 goes here")
+        
         
         # Dragging the food event
         if scene == "FEED":
+            dragging_any_food = False # For feeding animation
             for food in foods:
                 food.handle_events(event, mouse_pos, pet_rect)
+                if food.dragging:
+                    dragging_any_food = True
+            
+            # Triggering the feed animation when dragging
+            if dragging_any_food:
+                my_pet.change_state("Eating")
+            elif my_pet.state == "Eating":
+                my_pet.change_state("Idle")
+    
+    # ------------------
+    #   DRAWING LOGIC
+    # ------------------
+    # Background set up
 
-    screen.fill(cfg.WHITE)
+    screen.fill(SKY_COLOR)
+
+    if my_pet.state == "Sleeping":
+        screen.blit(night_overlay, (0,0))
+
+    # Night stars implementation
+    if my_pet.state == "Sleeping":
+        for star in stars:
+            star.draw(screen)
+
+    # cloud implementation
+    for cloud in clouds:
+        cloud.draw(screen)
+        
+    screen.blit(background,(0,0))
+
+    if current_weather:
+        apply_weather_tint(screen, current_weather.get("category"))
+
+
 
     if scene == "MAIN":
         # Pet Display logic for main
         my_pet.update(dt)
+
 
         # If the pet is sleeping, darken the room
         if my_pet.state == "Sleeping":
@@ -387,6 +619,7 @@ while Running:
         my_pet.draw(screen)
         # added stat info display
         draw_stats(screen)
+        draw_location(screen)
 
         # ---Drawing section---
         if settings_open:
@@ -399,6 +632,21 @@ while Running:
             back_text = custom_font.render("Click SETTINGS Box to close",True,cfg.WHITE)
             screen.blit(s_text, (cfg.WIDTH//2 - 100, 150))
             screen.blit(back_text,(cfg.WIDTH//2 - 150, 250))
+
+            pygame.draw.rect(
+                screen,
+                BUTTON_HOVER if
+                change_weather_btn.collidepoint(mouse_pos) else BUTTON_COLOR,
+                    change_weather_btn
+            )
+            pygame.draw.rect(screen, cfg.BLACK, change_weather_btn, 3)
+
+            txt = small_font.render("CHANGE LOCATION", True, cfg.WHITE)
+            screen.blit(
+                txt,
+                (change_weather_btn.centerx - txt.get_width() // 2,
+                 change_weather_btn.centery - txt.get_height() // 2)
+            )
 
         else:
             # Button Drawing Implementation
@@ -468,28 +716,29 @@ while Running:
                 # This snippet is for drawing the quantity text near the slot
                 qty_text = small_font.render(f"x{my_pet.inventory[food.name]}", True, cfg.BLACK)
                 screen.blit(qty_text, (food.original_pos[0] - 20, food.original_pos[1] + 40))
+                
+    elif scene == "GAME_MENU":
+        my_pet.update(dt)
+        my_pet.draw(screen)
+        screen.blit(back_icon, back_btn_rect)
+        if back_btn_rect.collidepoint(mouse_pos):
+            pygame.draw.rect(screen, BUTTON_HOVER, back_btn_rect, border_radius=8)
+        screen.blit(back_icon, back_btn_rect)
 
-# this goes with the other weather comment above
-        '''if asking_location:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    weather = get_weather(user_text)
-                    asking_location = False
-                elif event.key == pygame.K_BACKSPACE:
-                    user.text = user_text[:-1]
-                else:
-                    user_text += event.unicode
-        
-    if asking_location:
-        screen.fill((255,255,255))
-        prompt = font.render("Enter city", True (0,0,0))
-        text_surface = font.render(user_text, True, (0,0,0))
+        title_txt = custom_font.render("SELECT GAME", True, cfg.BLACK)
+        screen.blit(title_txt, (cfg.WIDTH // 2 - title_txt.get_width() // 2, 100))
 
-        screen.blit(prompt, (20, 20))
-        screen.blit(text_surface, (20, 60))
-
-        pygame.display.flip()
-        continue'''
+        for rect, label in [
+            (flappy_select_button, "FLAPPY"),
+            (snake_select_button, "SNAKE"),
+            (future_game_button_2, "COMING SOON")
+        ]:
+            color = BUTTON_HOVER if rect.collidepoint(mouse_pos) else BUTTON_COLOR
+            pygame.draw.rect(screen, color, rect)
+            pygame.draw.rect(screen, cfg.BLACK, rect, 4)
+            txt = small_font.render(label, True, cfg.WHITE)
+            screen.blit(txt, (rect.x + (rect.width - txt.get_width()) // 2,
+                               rect.y + (rect.height - txt.get_height()) // 2))
     
     # WHITE = (255,255,255)
     #screen.fill(cfg.WHITE) # white screen for now
