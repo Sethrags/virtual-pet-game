@@ -174,6 +174,7 @@ class Pet:
 
         # for testing: seeing in the console food values
         print(f"Fed {food_name}: Hunger = {int(self.hunger)}")
+        eatingSound.play() # Play eating sound effect when feeding
 
     def sleep(self):
         if self.state == "Sleeping":
@@ -321,6 +322,17 @@ class Star:
 # -------------------------
 
 pygame.init()
+pygame.mixer.init() # for sound effects and music 
+
+# background music implementation
+pygame.mixer.music.load(cfg.ASSETS_DIR / "forest.wav")
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1) # Loop the background music indefinitely
+
+victorySound = pygame.mixer.Sound(cfg.ASSETS_DIR / "victory_sound.ogg")
+victorySound.set_volume(0.2) # Set the volume for the victory sound effect
+eatingSound = pygame.mixer.Sound(cfg.ASSETS_DIR / "eatingSnd.wav")
+eatingSound.set_volume(0.8) # Set the volume for the eating sound effect
 
 # This code is for the custom font (pixelated font)
 custom_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 32) # We will test out the font size
@@ -583,13 +595,15 @@ while Running:
 
                 elif flappy_select_button.collidepoint(mouse_pos):
                     result, blueberries_earned = run_flappy_game(screen=screen)
+                    victorySound.play()
                     my_pet.inventory["Blueberry"] += blueberries_earned
                     clock.tick()    
 
                 elif snake_select_button.collidepoint(mouse_pos):
                     rewards = snake.run_snake_game(screen)
                     
-                    if rewards:
+                    if rewards:       
+                        victorySound.play()
                         my_pet.inventory["Blueberry"] += rewards["Blueberry"]
                         my_pet.inventory["Raspberry"] += rewards["Raspberry"]
                         my_pet.inventory["Cookie"] += rewards["Cookie"]
