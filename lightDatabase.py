@@ -73,7 +73,7 @@ cursor = connection.cursor()
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS pet_stats (
-    username INTEGER PRIMARY KEY,
+    username TEXT PRIMARY KEY,
     hunger REAL NOT NULL,
     happiness REAL NOT NULL,
     energy REAL NOT NULL
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS pet_stats (
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS inventory (
-    username INTEGER PRIMARY KEY,
+    username TEXT PRIMARY KEY,
     blueberry INTEGER NOT NULL,
     raspberry INTEGER NOT NULL,
     cookie INTEGER NOT NULL
