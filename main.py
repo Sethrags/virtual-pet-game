@@ -7,6 +7,7 @@ from weatherapp import get_weather # this is the code for the weather applicatio
 from login import run_login_screen #login code import
 from flappy_game import run_flappy_game #flappybird Game import
 import snake
+from lightDatabase import ensure_user_exists, load_pet_data, save_pet_data # light database import for saving/loading pet stats and inventory
 
 def pygame_text_input(prompt="Enter text:", max_length=20):
     input_text = ""
@@ -22,6 +23,11 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                save_pet_data(username, my_pet)
+                print("Pet data saved. Exiting game.")
+                print("Final Stats - Hunger: {}, Happiness: {}, Energy: {}".format(int(my_pet.hunger), int(my_pet.happiness), int(my_pet.energy)))
+                print("Final Inventory - Blueberry: {}, Raspberry: {}, Cookie: {}".format(my_pet.inventory['Blueberry'], my_pet.inventory['Raspberry'], my_pet.inventory['Cookie']))    
+            
                 pygame.quit()
                 sys.exit()
 
@@ -445,6 +451,8 @@ def apply_weather_tint(screen, category):
 
 Running = True
 clock = pygame.time.Clock()
+AUTOSAVE_INTERVAL = 10_000   # milliseconds (10 seconds)
+autosave_timer = 0
 scene = "MAIN" # for switching scenes
 my_pet = Pet() # Initialize pet
 
@@ -473,21 +481,49 @@ clouds = [cloud() for _ in range(3)] # number of clouds
 stars = [Star() for _ in range(40)] # Number of stars
 
 # Login Implementation
-logged_in = run_login_screen(screen=screen, pet=my_pet, game_clock=clock)
-
-if not logged_in:
+username = run_login_screen(screen=screen, pet=my_pet, game_clock=clock)
+if not username:
     pygame.quit()
     quit()
-
 
 # After the initial log in screen, reset clock so it doesn't accumulate dt
 clock.tick()
 
+ensure_user_exists(username)
+stats, inv = load_pet_data(username)
+if stats:
+    my_pet.hunger, my_pet.happiness, my_pet.energy = stats
+if inv:
+    my_pet.inventory["Blueberry"] = inv[0]
+    my_pet.inventory["Raspberry"] = inv[1]
+    my_pet.inventory["Cookie"] = inv[2]
+    
+# --- LOAD PET DATA FROM DATABASE ---
+stats, inv = load_pet_data(username)
+print("Loaded Stats: ", stats)
+print(f"Pet Stats - Hunger: {my_pet.hunger}, Happiness: {my_pet.happiness}, Energy: {my_pet.energy}")
+if stats:
+    my_pet.hunger, my_pet.happiness, my_pet.energy = stats
+    
+print("Loaded Inventory: ", inv)
+print(f"Pet Inventory - Blueberry: {my_pet.inventory['Blueberry']}, Raspberry: {my_pet.inventory['Raspberry']}, Cookie: {my_pet.inventory['Cookie']}")
+if inv:
+    my_pet.inventory["Blueberry"] = inv[0]
+    my_pet.inventory["Raspberry"] = inv[1]
+    my_pet.inventory["Cookie"] = inv[2]
+    
 
 # -------------------------------
 # --- MAIN RUNNING GAME LOOP ----
 while Running:
     dt = clock.tick(cfg.FPS)    #frame rate/delta time
+
+    autosave_timer += dt
+    if autosave_timer >= AUTOSAVE_INTERVAL:
+        save_pet_data(username, my_pet)
+        autosave_timer = 0
+        print("Autosaved pet data.")
+
     mouse_pos = pygame.mouse.get_pos()
 
     # Mouth Hitbox (Feeding)
@@ -505,6 +541,7 @@ while Running:
     for event in pygame.event.get():
         # Quit button
         if event.type == pygame.QUIT:
+            save_pet_data(username, my_pet)
             Running = False
 
         # Scene switch
