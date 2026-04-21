@@ -9,6 +9,25 @@ from flappy_game import run_flappy_game #flappybird Game import
 import snake
 from lightDatabase import ensure_user_exists, load_pet_data, save_pet_data # light database import for saving/loading pet stats and inventory
 
+#---------------------
+# VIRTUAL PET PROJECT
+#---------------------
+# Main features:
+# pet hunger and energy systems
+# animation sequences
+# Databse
+# Weather Implementation
+# Minigames
+#---------------------
+
+# Window dimensions (put this on config.py?)
+screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
+
+# This will be used for a night overlay in the window
+night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
+night_overlay.set_alpha(120) # This is the brightness adjustment
+night_overlay.fill((10,10,40))
+
 def pygame_text_input(prompt="Enter text:", max_length=20):
     input_text = ""
     font = pygame.font.Font(None, 36)
@@ -58,23 +77,6 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
 
         pygame.display.flip()
 
-#---------------------
-# VIRTUAL PET PROJECT
-#---------------------
-# Main features to work on for now: 
-# pet hunger, hapiness and energy systems
-# game over systems
-# animation sequences
-#---------------------
-
-# Window dimensions (put this on config.py?)
-screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
-
-# This will be used for a night overlay in the window
-night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
-night_overlay.set_alpha(120) # This is the brightness adjustment
-night_overlay.fill((10,10,40))
-
 # This class is used for the main pet
 class Pet:
     def __init__(self):
@@ -106,9 +108,11 @@ class Pet:
         test_speed = 0.001
         hunger_speed_var = 0.00001
         energy_speed_var = 0.00008
+        sleeping_speed_var = 0.0001
         # Variables for testing use only
         hunger_speed = test_speed
         energy_speed = test_speed
+        sleeping_speed = 0.01
 
         # True pet stat speed
         #hunger_speed = hunger_speed_var
@@ -120,7 +124,7 @@ class Pet:
 
         # -- Energy Logic --
         if self.state == "Sleeping":
-            self.energy += energy_speed * dt
+            self.energy += sleeping_speed * dt
         else:
             self.energy -= energy_speed * dt
         self.energy = max(0, min(100.5,self.energy))
@@ -467,6 +471,7 @@ AUTOSAVE_INTERVAL = 10_000   # milliseconds (10 seconds)
 autosave_timer = 0
 scene = "MAIN" # for switching scenes
 my_pet = Pet() # Initialize pet
+holding_pet_head = False
 
 # weather
 current_location = None
@@ -538,13 +543,14 @@ while Running:
 
     mouse_pos = pygame.mouse.get_pos()
 
-    # Mouth Hitbox (Feeding)
+    # Mouth Hitbox (Feeding/petting)
     pet_rect = pygame.Rect(cfg.WIDTH // 2 - 40, cfg.HEIGHT // 2 - 40, 80, 80)
+    pet_head_rect = pygame.Rect(cfg.WIDTH // 2 - 60, cfg.HEIGHT // 2 - 120, 120, 100)
     
     # Cloud Implementation
     for cloud in clouds:
         cloud.update(dt)
-
+    
     # Stars Implementation
     for star in stars:
         star.update()
@@ -559,6 +565,11 @@ while Running:
         # Scene switch
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if scene == "MAIN":
+                # Petting Implementation
+                if pet_head_rect.collidepoint(mouse_pos):
+                    holding_pet_head = True
+
+                # Settings toggle
                 if settings_btn.collidepoint(mouse_pos):
                     settings_open = not settings_open
 
@@ -614,6 +625,8 @@ while Running:
                 elif future_game_button_2.collidepoint(mouse_pos):
                     print("future game 2 goes here")
         
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            holding_pet_head = False
         
         # Dragging the food event
         if scene == "FEED":
@@ -628,7 +641,15 @@ while Running:
                 my_pet.change_state("Eating")
             elif my_pet.state == "Eating":
                 my_pet.change_state("Idle")
-    
+
+    # Petting the pet implementation
+    if scene == "MAIN":
+        if holding_pet_head and my_pet.state != "Sleeping":
+            my_pet.change_state("Eating")
+        else:
+            if my_pet.state == "Eating":
+                my_pet.change_state("Idle")
+
     # ------------------
     #   DRAWING LOGIC
     # ------------------
@@ -680,9 +701,9 @@ while Running:
             screen.blit(overlay, (0,0))
 
             s_text = custom_font.render("SETTINGS",True,cfg.WHITE)
-            back_text = custom_font.render("Click SETTINGS Box to close",True,cfg.WHITE)
+            back_text = custom_font.render("Weather",True,cfg.WHITE)
             screen.blit(s_text, (cfg.WIDTH//2 - 100, 150))
-            screen.blit(back_text,(cfg.WIDTH//2 - 150, 250))
+            screen.blit(back_text,(cfg.WIDTH//2 - 75, 270))
 
             pygame.draw.rect(
                 screen,
