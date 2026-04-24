@@ -8,6 +8,23 @@ from login import run_login_screen #login code import
 from flappy_game import run_flappy_game #flappybird Game import
 import snake
 
+#---------------------
+# VIRTUAL PET PROJECT
+#---------------------
+# Main features to work on for now: 
+# pet hunger, hapiness and energy systems
+# game over systems
+# animation sequences
+#---------------------
+
+# Window dimensions (put this on config.py?)
+screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
+
+# This will be used for a night overlay in the window
+night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
+night_overlay.set_alpha(120) # This is the brightness adjustment
+night_overlay.fill((10,10,40))
+
 def pygame_text_input(prompt="Enter text:", max_length=20):
     input_text = ""
     font = pygame.font.Font(None, 36)
@@ -51,23 +68,6 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
         screen.blit(text_surf, (input_box.x + 10, input_box.y + 10))
 
         pygame.display.flip()
-
-#---------------------
-# VIRTUAL PET PROJECT
-#---------------------
-# Main features to work on for now: 
-# pet hunger, hapiness and energy systems
-# game over systems
-# animation sequences
-#---------------------
-
-# Window dimensions (put this on config.py?)
-screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
-
-# This will be used for a night overlay in the window
-night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
-night_overlay.set_alpha(120) # This is the brightness adjustment
-night_overlay.fill((10,10,40))
 
 # This class is used for the main pet
 class Pet:
