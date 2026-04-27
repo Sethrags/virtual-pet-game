@@ -28,6 +28,23 @@ night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
 night_overlay.set_alpha(120) # This is the brightness adjustment
 night_overlay.fill((10,10,40))
 
+#---------------------
+# VIRTUAL PET PROJECT
+#---------------------
+# Main features to work on for now: 
+# pet hunger, hapiness and energy systems
+# game over systems
+# animation sequences
+#---------------------
+
+# Window dimensions (put this on config.py?)
+screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
+
+# This will be used for a night overlay in the window
+night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
+night_overlay.set_alpha(120) # This is the brightness adjustment
+night_overlay.fill((10,10,40))
+
 def pygame_text_input(prompt="Enter text:", max_length=20):
     input_text = ""
     font = pygame.font.Font(None, 36)
