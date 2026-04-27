@@ -76,7 +76,7 @@ def run_login_screen(screen=None, pet=None, game_clock=None):
                 elif event.key == pygame.K_RETURN:
                     success, message = login(username, password)
                     if success:
-                        return True
+                        return username
 
                 else:
                     if active_box == "username":
@@ -95,7 +95,7 @@ def run_login_screen(screen=None, pet=None, game_clock=None):
                 elif login_button.collidepoint(event.pos):
                     success, message = login(username, password)
                     if success:
-                        return True
+                        return username
 
                 elif create_button.collidepoint(event.pos):
                     success, message = create_account(username, password)

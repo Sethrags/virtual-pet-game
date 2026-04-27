@@ -5,9 +5,9 @@ def classify_temp(temp_f):
     temp_f = float(temp_f)
     if temp_f < 32:
         return "cold"
-    if temp_f <= 100:
+    if temp_f <= 95:
         return "temperate"
-    if temp_f > 100:
+    if temp_f > 95:
         return "hot"
 
 def get_weather(location):

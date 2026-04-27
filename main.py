@@ -7,6 +7,26 @@ from weatherapp import get_weather # this is the code for the weather applicatio
 from login import run_login_screen #login code import
 from flappy_game import run_flappy_game #flappybird Game import
 import snake
+from lightDatabase import ensure_user_exists, load_pet_data, save_pet_data # light database import for saving/loading pet stats and inventory
+
+#---------------------
+# VIRTUAL PET PROJECT
+#---------------------
+# Main features:
+# pet hunger and energy systems
+# animation sequences
+# Databse
+# Weather Implementation
+# Minigames
+#---------------------
+
+# Window dimensions (put this on config.py?)
+screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
+
+# This will be used for a night overlay in the window
+night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
+night_overlay.set_alpha(120) # This is the brightness adjustment
+night_overlay.fill((10,10,40))
 
 def pygame_text_input(prompt="Enter text:", max_length=20):
     input_text = ""
@@ -22,6 +42,11 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                save_pet_data(username, my_pet)
+                print("Pet data saved. Exiting game.")
+                print("Final Stats - Hunger: {}, Happiness: {}, Energy: {}".format(int(my_pet.hunger), int(my_pet.happiness), int(my_pet.energy)))
+                print("Final Inventory - Blueberry: {}, Raspberry: {}, Cookie: {}".format(my_pet.inventory['Blueberry'], my_pet.inventory['Raspberry'], my_pet.inventory['Cookie']))    
+            
                 pygame.quit()
                 sys.exit()
 
@@ -51,23 +76,6 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
         screen.blit(text_surf, (input_box.x + 10, input_box.y + 10))
 
         pygame.display.flip()
-
-#---------------------
-# VIRTUAL PET PROJECT
-#---------------------
-# Main features to work on for now: 
-# pet hunger, hapiness and energy systems
-# game over systems
-# animation sequences
-#---------------------
-
-# Window dimensions (put this on config.py?)
-screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
-
-# This will be used for a night overlay in the window
-night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
-night_overlay.set_alpha(120) # This is the brightness adjustment
-night_overlay.fill((10,10,40))
 
 # This class is used for the main pet
 class Pet:
@@ -100,9 +108,11 @@ class Pet:
         test_speed = 0.001
         hunger_speed_var = 0.00001
         energy_speed_var = 0.00008
+        sleeping_speed_var = 0.0001
         # Variables for testing use only
         hunger_speed = test_speed
         energy_speed = test_speed
+        sleeping_speed = 0.01
 
         # True pet stat speed
         #hunger_speed = hunger_speed_var
@@ -114,7 +124,7 @@ class Pet:
 
         # -- Energy Logic --
         if self.state == "Sleeping":
-            self.energy += energy_speed * dt
+            self.energy += sleeping_speed * dt
         else:
             self.energy -= energy_speed * dt
         self.energy = max(0, min(100.5,self.energy))
@@ -168,6 +178,7 @@ class Pet:
 
         # for testing: seeing in the console food values
         print(f"Fed {food_name}: Hunger = {int(self.hunger)}")
+        eatingSound.play() # Play eating sound effect when feeding
 
     def sleep(self):
         if self.state == "Sleeping":
@@ -315,6 +326,17 @@ class Star:
 # -------------------------
 
 pygame.init()
+pygame.mixer.init() # for sound effects and music 
+
+# background music implementation
+pygame.mixer.music.load(cfg.ASSETS_DIR / "forest.wav")
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1) # Loop the background music indefinitely
+
+victorySound = pygame.mixer.Sound(cfg.ASSETS_DIR / "victory_sound.ogg")
+victorySound.set_volume(0.2) # Set the volume for the victory sound effect
+eatingSound = pygame.mixer.Sound(cfg.ASSETS_DIR / "eatingSnd.wav")
+eatingSound.set_volume(0.8) # Set the volume for the eating sound effect
 
 # This code is for the custom font (pixelated font)
 custom_font = pygame.font.Font(cfg.FONTS_DIR / "Grand9k Pixel.ttf", 32) # We will test out the font size
@@ -445,8 +467,11 @@ def apply_weather_tint(screen, category):
 
 Running = True
 clock = pygame.time.Clock()
+AUTOSAVE_INTERVAL = 10_000   # milliseconds (10 seconds)
+autosave_timer = 0
 scene = "MAIN" # for switching scenes
 my_pet = Pet() # Initialize pet
+holding_pet_head = False
 
 # weather
 current_location = None
@@ -473,30 +498,59 @@ clouds = [cloud() for _ in range(3)] # number of clouds
 stars = [Star() for _ in range(40)] # Number of stars
 
 # Login Implementation
-logged_in = run_login_screen(screen=screen, pet=my_pet, game_clock=clock)
-
-if not logged_in:
+username = run_login_screen(screen=screen, pet=my_pet, game_clock=clock)
+if not username:
     pygame.quit()
     quit()
-
 
 # After the initial log in screen, reset clock so it doesn't accumulate dt
 clock.tick()
 
+ensure_user_exists(username)
+stats, inv = load_pet_data(username)
+if stats:
+    my_pet.hunger, my_pet.happiness, my_pet.energy = stats
+if inv:
+    my_pet.inventory["Blueberry"] = inv[0]
+    my_pet.inventory["Raspberry"] = inv[1]
+    my_pet.inventory["Cookie"] = inv[2]
+    
+# --- LOAD PET DATA FROM DATABASE ---
+stats, inv = load_pet_data(username)
+print("Loaded Stats: ", stats)
+print(f"Pet Stats - Hunger: {my_pet.hunger}, Happiness: {my_pet.happiness}, Energy: {my_pet.energy}")
+if stats:
+    my_pet.hunger, my_pet.happiness, my_pet.energy = stats
+    
+print("Loaded Inventory: ", inv)
+print(f"Pet Inventory - Blueberry: {my_pet.inventory['Blueberry']}, Raspberry: {my_pet.inventory['Raspberry']}, Cookie: {my_pet.inventory['Cookie']}")
+if inv:
+    my_pet.inventory["Blueberry"] = inv[0]
+    my_pet.inventory["Raspberry"] = inv[1]
+    my_pet.inventory["Cookie"] = inv[2]
+    
 
 # -------------------------------
 # --- MAIN RUNNING GAME LOOP ----
 while Running:
     dt = clock.tick(cfg.FPS)    #frame rate/delta time
+
+    autosave_timer += dt
+    if autosave_timer >= AUTOSAVE_INTERVAL:
+        save_pet_data(username, my_pet)
+        autosave_timer = 0
+        print("Autosaved pet data.")
+
     mouse_pos = pygame.mouse.get_pos()
 
-    # Mouth Hitbox (Feeding)
+    # Mouth Hitbox (Feeding/petting)
     pet_rect = pygame.Rect(cfg.WIDTH // 2 - 40, cfg.HEIGHT // 2 - 40, 80, 80)
+    pet_head_rect = pygame.Rect(cfg.WIDTH // 2 - 60, cfg.HEIGHT // 2 - 120, 120, 100)
     
     # Cloud Implementation
     for cloud in clouds:
         cloud.update(dt)
-
+    
     # Stars Implementation
     for star in stars:
         star.update()
@@ -505,11 +559,17 @@ while Running:
     for event in pygame.event.get():
         # Quit button
         if event.type == pygame.QUIT:
+            save_pet_data(username, my_pet)
             Running = False
 
         # Scene switch
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if scene == "MAIN":
+                # Petting Implementation
+                if pet_head_rect.collidepoint(mouse_pos):
+                    holding_pet_head = True
+
+                # Settings toggle
                 if settings_btn.collidepoint(mouse_pos):
                     settings_open = not settings_open
 
@@ -546,13 +606,15 @@ while Running:
 
                 elif flappy_select_button.collidepoint(mouse_pos):
                     result, blueberries_earned = run_flappy_game(screen=screen)
+                    victorySound.play()
                     my_pet.inventory["Blueberry"] += blueberries_earned
                     clock.tick()    
 
                 elif snake_select_button.collidepoint(mouse_pos):
                     rewards = snake.run_snake_game(screen)
                     
-                    if rewards:
+                    if rewards:       
+                        victorySound.play()
                         my_pet.inventory["Blueberry"] += rewards["Blueberry"]
                         my_pet.inventory["Raspberry"] += rewards["Raspberry"]
                         my_pet.inventory["Cookie"] += rewards["Cookie"]
@@ -563,6 +625,8 @@ while Running:
                 elif future_game_button_2.collidepoint(mouse_pos):
                     print("future game 2 goes here")
         
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            holding_pet_head = False
         
         # Dragging the food event
         if scene == "FEED":
@@ -577,7 +641,15 @@ while Running:
                 my_pet.change_state("Eating")
             elif my_pet.state == "Eating":
                 my_pet.change_state("Idle")
-    
+
+    # Petting the pet implementation
+    if scene == "MAIN":
+        if holding_pet_head and my_pet.state != "Sleeping":
+            my_pet.change_state("Eating")
+        else:
+            if my_pet.state == "Eating":
+                my_pet.change_state("Idle")
+
     # ------------------
     #   DRAWING LOGIC
     # ------------------
@@ -629,9 +701,9 @@ while Running:
             screen.blit(overlay, (0,0))
 
             s_text = custom_font.render("SETTINGS",True,cfg.WHITE)
-            back_text = custom_font.render("Click SETTINGS Box to close",True,cfg.WHITE)
+            back_text = custom_font.render("Weather",True,cfg.WHITE)
             screen.blit(s_text, (cfg.WIDTH//2 - 100, 150))
-            screen.blit(back_text,(cfg.WIDTH//2 - 150, 250))
+            screen.blit(back_text,(cfg.WIDTH//2 - 75, 270))
 
             pygame.draw.rect(
                 screen,
