@@ -1,3 +1,8 @@
+# Filename: main.py
+# Author: Jorge, Brent, Evan, Seth
+# Description: This is the main file for the Tamagotchi game. 
+# It initializes the game, handles the main game loop, and manages interactions 
+# between the pet, user input, and other modules such as animation, weather, and database.
 import pygame
 import sys
 import random
@@ -9,17 +14,6 @@ from flappy_game import run_flappy_game #flappybird Game import
 import snake
 from lightDatabase import ensure_user_exists, load_pet_data, save_pet_data # light database import for saving/loading pet stats and inventory
 
-#---------------------
-# VIRTUAL PET PROJECT
-#---------------------
-# Main features:
-# pet hunger and energy systems
-# animation sequences
-# Databse
-# Weather Implementation
-# Minigames
-#---------------------
-
 # Window dimensions (put this on config.py?)
 screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
 
@@ -27,15 +21,6 @@ screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
 night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
 night_overlay.set_alpha(120) # This is the brightness adjustment
 night_overlay.fill((10,10,40))
-
-#---------------------
-# VIRTUAL PET PROJECT
-#---------------------
-# Main features to work on for now: 
-# pet hunger, hapiness and energy systems
-# game over systems
-# animation sequences
-#---------------------
 
 # Window dimensions (put this on config.py?)
 screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))

@@ -1,6 +1,6 @@
-#filename: auth_manager.py
-#author: Seth
-#description: This file manages user authentication for the Tamagotchi game. 
+# Filename: auth_manager.py
+# Author: Seth
+# Description: This file manages user authentication for the Tamagotchi game. 
 # functions to load and save user data, hash passwords, check for existing usernames, 
 # create new accounts, and validate login credentials User data is stored in a JSON 
 # file (users.json) with the following structure:
