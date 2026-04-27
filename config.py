@@ -1,3 +1,9 @@
+# Filename: config.py
+# Author: Jorge
+# Description: Configuration file for the Tamagotchi game. This file contains constants and settings 
+# that are used throughout the game.It includes settings for the game window, colors, and paths to assets and fonts.
+# This file is meant to centralize configuration settings to make it easier to manage and update them in one place.
+
 # Window screen configurations
 WIDTH = 500
 HEIGHT = 500
