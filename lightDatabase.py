@@ -1,76 +1,23 @@
-"""""
-import sqlite3
-
-def load_pet_data():
-    cursor = connection.cursor()
-    cursor.execute("SELECT hunger, happiness, energy FROM pet_stats WHERE id = 1")
-    row = cursor.fetchone()
-
-    cursor.execute("SELECT blueberry, raspberry, cookie FROM inventory WHERE id = 1")
-    inv = cursor.fetchone()
-
-    return row, inv
-
-def save_pet_data(pet):
-    cursor = connection.cursor()
-    cursor.execute(""
-        UPDATE pet_stats
-        SET hunger=?, happiness=?, energy=?
-        WHERE id=1
-    "", (pet.hunger, pet.happiness, pet.energy))
-
-    cursor.execute(""
-        UPDATE inventory
-        SET blueberry=?, raspberry=?, cookie=?
-        WHERE id=1
-    "", (
-        pet.inventory["Blueberry"],
-        pet.inventory["Raspberry"],
-        pet.inventory["Cookie"]
-    ))
-
-    connection.commit()
-
-connection = sqlite3.connect('example.db')
-
-#Creates a table in the file if it doesn't already exist
-connection.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY, 
-                hunger INTEGER, 
-                happiness INTEGER,
-                energy INTEGER)''')
-
-#Inserts data into the table
-connection.execute("INSERT INTO users (hunger, happiness, energy) VALUES (5, 7, 8)")
-
-#Writes data to the file
-connection.commit()
-
-#Retrieves data from the table
-cursor = connection.execute("SELECT * FROM users")
-for row in cursor:
-    print(f"id: {row[0]}, hunger: {row[1]}, happiness: {row[2]}, energy: {row[3]}")
-
-#Closes the connection to the file
-connection.close()
-"""
+# Filename: lightDatabase.py
+# Author: Brent
+# Description: This file handles all interactions with the SQLite database for the virtual pet game.
+# It provides functions to initialize the database, load pet data, save pet data, and ensure user records exist.
+# The database consists of two tables: pet_stats (for hunger, happiness, energy) and inventory (for food items).
+# Note: The connection is shared across the file for simplicity, but in a larger application, 
+# we would manage connections more robustly (e.g., using context managers or a connection pool).
+#
 import sqlite3
 import os
 
-# -----------------------------
-# DATABASE INITIALIZATION
-# -----------------------------
 
+# DATABASE INITIALIZATION
 DB_PATH = "petdata.db"
 
-# Create connection (shared across module)
+# Create connection (shared across functions for simplicity)
 connection = sqlite3.connect(DB_PATH)
 cursor = connection.cursor()
 
-# -----------------------------
-# TABLE CREATION
-# -----------------------------
-
+# Table creation (if not exists)
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS pet_stats (
     username TEXT PRIMARY KEY,
@@ -80,6 +27,7 @@ CREATE TABLE IF NOT EXISTS pet_stats (
 )
 """)
 
+# Table for inventory (if not exists)
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS inventory (
     username TEXT PRIMARY KEY,
@@ -88,16 +36,16 @@ CREATE TABLE IF NOT EXISTS inventory (
     cookie INTEGER NOT NULL
 )
 """)
+connection.commit() #commit changes to create base tables
 
-connection.commit()
-
-# -----------------------------
-# LOAD FUNCTIONS
-# -----------------------------
-
+# load_pet_data
+# Load Pet Data from the database for a given username. Returns a tuple of (stats, inventory) where:
+# - stats: is a tuple of (hunger, happiness, energy) or None if the user does not exist.
+# - inventory: is a tuple of (blueberry, raspberry, cookie) or None if the user does not exist.
 def load_pet_data(username):
     cursor = connection.cursor()
 
+    # Fetch pet stats
     cursor.execute("""
         SELECT hunger, happiness, energy
         FROM pet_stats
@@ -105,6 +53,7 @@ def load_pet_data(username):
     """, (username,))
     stats = cursor.fetchone()
 
+    # Fetch inventory
     cursor.execute("""
         SELECT blueberry, raspberry, cookie
         FROM inventory
@@ -112,20 +61,23 @@ def load_pet_data(username):
     """, (username,))
     inv = cursor.fetchone()
 
-    return stats, inv
-# -----------------------------
-# SAVE FUNCTIONS
-# -----------------------------
+    return stats, inv # Return both stats and inventory as tuples, or None if user does not exist
 
+# save_pet_data
+# Save Pet Data to the database for a given username. 
+# Takes a pet object with attributes hunger, happiness, energy, 
+# and inventory (a dict with keys "Blueberry", "Raspberry", "Cookie").
 def save_pet_data(username, pet):
     cursor = connection.cursor()
 
+    # Update pet stats
     cursor.execute("""
         UPDATE pet_stats
         SET hunger=?, happiness=?, energy=?
         WHERE username=?
     """, (pet.hunger, pet.happiness, pet.energy, username))
 
+    # Update inventory
     cursor.execute("""
         UPDATE inventory
         SET blueberry=?, raspberry=?, cookie=?
@@ -137,15 +89,16 @@ def save_pet_data(username, pet):
         username
     ))
 
-    connection.commit()
+    connection.commit() # Commit changes to save updates to the database
 
-# -----------------------------
-# New USER MANAGEMENT
-# -----------------------------
+# Ensure_user_exists
+# This function checks if a user record exists in both pet_stats and inventory tables.
+# If not, it creates new records with default values (hunger=100, happiness=100, energy=100 for pet_stats 
+# and 7 blueberries, 5 raspberries, 3 cookies for inventory).
 def ensure_user_exists(username):
     cursor = connection.cursor()
 
-    # Pet stats
+    # Check if user exists in pet_stats, if not create new record with default values
     cursor.execute("SELECT 1 FROM pet_stats WHERE username=?", (username,))
     if cursor.fetchone() is None:
         cursor.execute("""
@@ -153,7 +106,7 @@ def ensure_user_exists(username):
             VALUES (?, 100, 100, 100)
         """, (username,))
 
-    # Inventory
+    # Check if user exists in inventory, if not create new record with default values
     cursor.execute("SELECT 1 FROM inventory WHERE username=?", (username,))
     if cursor.fetchone() is None:
         cursor.execute("""
@@ -161,11 +114,10 @@ def ensure_user_exists(username):
             VALUES (?, 7, 5, 3)
         """, (username,))
 
-    connection.commit()
+    connection.commit() # Commit changes to ensure new records are saved to the database
 
-# -----------------------------
-# OPTIONAL: CLOSE CONNECTION
-# -----------------------------
-
+# close_db
+# This function closes the database connection. 
+# It should be called when the application is shutting down to ensure resources are properly released.
 def close_db():
-    connection.close()
+    connection.close() # Close the database connection when the application is done using it.

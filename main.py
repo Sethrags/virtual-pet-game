@@ -1,3 +1,8 @@
+# Filename: main.py
+# Author: Jorge, Brent, Evan, Seth
+# Description: This is the main file for the Tamagotchi game. 
+# It initializes the game, handles the main game loop, and manages interactions 
+# between the pet, user input, and other modules such as animation, weather, and database.
 import pygame
 import sys
 import random
@@ -9,18 +14,7 @@ from flappy_game import run_flappy_game #flappybird Game import
 import snake
 from lightDatabase import ensure_user_exists, load_pet_data, save_pet_data # light database import for saving/loading pet stats and inventory
 
-#---------------------
-# VIRTUAL PET PROJECT
-#---------------------
-# Main features:
-# pet hunger and energy systems
-# animation sequences
-# Databse
-# Weather Implementation
-# Minigames
-#---------------------
-
-# Window dimensions (put this on config.py?)
+# Window Dimensions  
 screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
 
 # This will be used for a night overlay in the window
@@ -28,24 +22,13 @@ night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
 night_overlay.set_alpha(120) # This is the brightness adjustment
 night_overlay.fill((10,10,40))
 
-#---------------------
-# VIRTUAL PET PROJECT
-#---------------------
-# Main features to work on for now: 
-# pet hunger, hapiness and energy systems
-# game over systems
-# animation sequences
-#---------------------
-
-# Window dimensions (put this on config.py?)
-screen = pygame.display.set_mode((cfg.WIDTH,cfg.HEIGHT))
-
-# This will be used for a night overlay in the window
-night_overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
-night_overlay.set_alpha(120) # This is the brightness adjustment
-night_overlay.fill((10,10,40))
-
+# pygame_text_input
+# This function creates a simple text input interface using Pygame, allowing the user to enter text 
+# with a prompt and a maximum length. It handles keyboard events for text input, backspace, and submission (Enter key), 
+# and displays the input in real-time on the screen. The function returns the final input text when the user presses Enter.
+# This is used for features like entering a city name for weather updates in the settings menu.
 def pygame_text_input(prompt="Enter text:", max_length=20):
+    # Initialize variables for text input
     input_text = ""
     font = pygame.font.Font(None, 36)
 
@@ -54,9 +37,12 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
     overlay.set_alpha(180)
     overlay.fill((0, 0, 0))
 
+    # Define the input box rectangle
     input_box = pygame.Rect(cfg.WIDTH//2 - 150, cfg.HEIGHT//2, 300, 50)
 
+    # Main loop for text input
     while True:
+        # Event handling for quitting and text input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 save_pet_data(username, my_pet)
@@ -92,24 +78,27 @@ def pygame_text_input(prompt="Enter text:", max_length=20):
         text_surf = font.render(input_text, True, cfg.WHITE)
         screen.blit(text_surf, (input_box.x + 10, input_box.y + 10))
 
+        # Update the display
         pygame.display.flip()
 
-# This class is used for the main pet
+# Pet
+# This class represents the virtual pet in the game, managing its stats (hunger, happiness, energy), 
+# inventory of food items, and animations for different states (idle, hungry, tired, eating, sleeping).
 class Pet:
     def __init__(self):
+        # Initialize pet stats
         self.hunger = 100
         self.happiness = 100
         self.energy = 100
 
-        # This line of code is going to be used for the implementation
-        # of a food inventory system
+        # Inventory for the pet, can be expanded with more food items and such, but for now we have 3 main items
         self.inventory = {
             "Blueberry": 7,
             "Raspberry": 5,
             "Cookie": 3
         }
 
-        # This is where we put all the possible animations for the pet
+        # Animations for different states of the pet, using the Animator class from the animation module
         self.animations = {
             "Idle": Animator(cfg.ASSETS_DIR / "spritesheet_idle_animation.png", 48, 48, scale= 6),
             "Hungry": Animator(cfg.ASSETS_DIR / "spritesheet_idle_sad_animation.png",48, 48, scale = 6),
@@ -120,12 +109,16 @@ class Pet:
         }
         self.state = "Idle" # Set this up as the starting state for the pet
     
+    # update
+    # This method updates the pet's stats (hunger, energy) based on the passage of time (dt) and its current state.
     def update(self,dt): 
+
         # Speed types
         test_speed = 0.001
         hunger_speed_var = 0.00001
         energy_speed_var = 0.00008
         sleeping_speed_var = 0.0001
+
         # Variables for testing use only
         hunger_speed = test_speed
         energy_speed = test_speed
@@ -168,18 +161,25 @@ class Pet:
 
         self.animations[self.state].update(dt) # animating the pet
 
+    # draw
+    # This method draws the pet on the screen based on its current state and corresponding animation.
     def draw(self, screen):
         fox_half_size = (48 * 6) // 2 # If you change the scale, remember to change this too
         pos_x = (cfg.WIDTH // 2) - fox_half_size
         pos_y = (cfg.HEIGHT // 2) - fox_half_size
         self.animations[self.state].draw(screen,pos_x,pos_y)
 
+    # change_state
+    # This method changes the pet's state to a new state and resets the animation for that state.
     def change_state(self,new_state):
+        # Only change state if it's different from the current state to avoid unnecessary resets
         if self.state != new_state:
             self.state = new_state
             self.animations[self.state].current_frame = 0
             self.animations[self.state].timer=0
 
+    # feed
+    # This method feeds the pet with a specified food item, increasing its hunger stat based on the food's value.
     def feed(self, food_name):
         # Food values for different foods
         food_values = {
@@ -197,6 +197,9 @@ class Pet:
         print(f"Fed {food_name}: Hunger = {int(self.hunger)}")
         eatingSound.play() # Play eating sound effect when feeding
 
+    # sleep
+    # This method toggles the pet's sleeping state. If the pet is currently sleeping, it wakes up and changes to idle state;
+    # if the pet is not sleeping, it changes to sleeping state.
     def sleep(self):
         if self.state == "Sleeping":
             self.change_state("Idle")
@@ -205,10 +208,13 @@ class Pet:
             self.change_state("Sleeping")
             print("Sleeping...")
 
+    # play_game
+    # This method is a placeholder for implementing mini-games that the pet can play to earn rewards
     def play_game():
         raise NotImplementedError
     
-    # Apply effects to pet pased on current weather if location present
+    # apply_weather_effects
+    # Apply effects to pet based on current weather if location present
     def apply_weather_effects(self, category):
         if category == "cold":
             self.energy = max(0, self.energy - 0.02)
@@ -218,7 +224,10 @@ class Pet:
             self.happiness = min(100, self.happiness + 0.01)
 
 
-# We need a food item class for the feeding implementation
+# FoodItem
+# This class represents a food item that can be fed to the pet. It manages the food's name, image, position, 
+# dragging state, and interactions with the pet (feeding when dropped on the pet's mouth). 
+# It also handles the visual representation of the food item and the particle effects when feeding.
 class FoodItem:
     # Initializer for the food item, makes it easier for many object implementations in case we need to add more
     def __init__(self,name,img_path,x,y):
@@ -237,6 +246,8 @@ class FoodItem:
         self.original_pos = self.rect.center
         self.dragging = False
 
+    # handle_events
+    # This method handles mouse events for dragging the food item and feeding the pet when the food is dropped on the pet's mouth.
     def handle_events(self,event,mouse_pos,pet_rect):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(mouse_pos):
@@ -257,19 +268,26 @@ class FoodItem:
                             particles.append(Particle(self.rect.centerx,self.rect.centery,self.particle_color))
                         self.rect.center = self.original_pos
 
+    # update
+    # This method updates the position of the food item when it is being dragged, 
+    # and resets its position when it is not being dragged.
     def update(self,mouse_pos):
         if self.dragging:
             self.rect.center = mouse_pos
         else:
             self.rect.center = self.original_pos
 
+    # draw
+    # This method draws the food item on the screen if it is available in the pet's inventory (quantity > 0).
     def draw(self,screen):
         if my_pet.inventory[self.name] > 0:
             screen.blit(self.image, self.rect)
 
-# This class will be used to handle the feeding pet particles (crumbs)
-# that should happen when the user feeds the pet in the feeding menu
+# Particle
+# This class represents a particle effect (crumb) that appears when the pet is fed. 
+# It manages the particle's position, color, velocity, and life span.
 class Particle:
+    # Initializer for the particle, sets its position, color, random velocity for a scattering effect, and life span for fading out.
     def __init__(self,x,y,color):
         self.x = x
         self.y = y
@@ -279,19 +297,25 @@ class Particle:
         self.vy = random.uniform(-5,-1) # goes upward at first
         self.life = 255 # so it dissapears
 
+    # update
+    # This method updates the particle's position based on its velocity, applies a gravity effect
+    # to make it fall down, and decreases its life span to create a fading effect.
     def update(self,dt):
         self.x += self.vx
         self.vy += 0.2 # acts as gravity
         self.y += self.vy
         self.life -= 5 # fade speed
     
+    # draw
+    # This method draws the particle on the screen as a small rectangle (crumb) if its life span is greater than 0.
     def draw(self,screen):
         if self.life > 0:
             # Display a little pixel (crumb)
             crumb_rect = pygame.Rect(self.x, self.y, 4, 4)
             pygame.draw.rect(screen,self.color,crumb_rect)
 
-# --- DYNAMIC CLOUDS ON BACKGROUND ---
+
+# Cloud dynamic clouds on the background
 cloud_images = []
 for name in ["cloud_1.png","cloud_2.png","cloud_3.png"]:
     img = pygame.image.load(cfg.ASSETS_DIR / name).convert()
@@ -301,9 +325,14 @@ for name in ["cloud_1.png","cloud_2.png","cloud_3.png"]:
 # Scaling the clouds
 cloud_images = [pygame.transform.scale_by(img, 2) for img in cloud_images]
 
-
-# Main class for cloud objects
+# Cloud 
+# This class represents a cloud that moves across the background of the game. 
+# It manages the cloud's image, position, speed, and updates its movement across the screen. 
+# When a cloud moves off the right edge of the screen, it resets to the left edge with a new random 
+# vertical position and a randomly selected cloud image.
 class cloud:
+    # Initializer for the cloud, randomly selects an image from the cloud_images list, 
+    # sets a random horizontal position across the width of the screen,
     def __init__(self):
         self.image = random.choice(cloud_images)
 
@@ -312,6 +341,8 @@ class cloud:
 
         self.speed = random.uniform(0.02, 0.08)
 
+    # update
+    # This method updates the cloud's horizontal position based on its speed and the passage of time (dt).
     def update(self, dt):
         self.x += self.speed * dt
 
@@ -320,28 +351,37 @@ class cloud:
             self.x = -100
             self.y = random.randint(0,100)
             self.image = random.choice(cloud_images)
+
+    # draw
+    # This method draws the cloud on the screen at its current position.
     def draw(self,screen):
         screen.blit(self.image, (self.x,self.y))
 
-# Class for stars for when night is toggled
+# Star
+# This class represents a star that appears in the night sky when the pet is sleeping.
 class Star:
+    # Initializer for the star, sets a random position in the upper half of the screen, 
+    # a random speed for twinkling effect, and a random size for visual variety.
     def __init__(self):
         self.x = random.randint(0,cfg.WIDTH)
         self.y = random.randint(0, int(cfg.HEIGHT * 0.5))
         self.speed = random.uniform(0.02, 0.06)
         self.size = random.randint(1,3)
+
+    # update
+    # This method updates the star's horizontal position based on its speed, creating a twinkling effect.
     def update(self):
         self.x -= self.speed
         if self.x < 0:
             self.x = cfg.WIDTH
             self.y = random.randint(0, int(cfg.HEIGHT * 0.5))
+
+    # draw
+    # This method draws the star on the screen as a small circle at its current position.
     def draw(self, surface):
         pygame.draw.circle(surface, (255,255,255), (int(self.x),int(self.y)),self.size)
 
-# -------------------------
-# ---     VARIABLES     ---
-# -------------------------
-
+#     INITIALIZATION
 pygame.init()
 pygame.mixer.init() # for sound effects and music 
 
@@ -350,6 +390,7 @@ pygame.mixer.music.load(cfg.ASSETS_DIR / "forest.wav")
 pygame.mixer.music.set_volume(0.5)
 pygame.mixer.music.play(-1) # Loop the background music indefinitely
 
+# Sound effects implementation
 victorySound = pygame.mixer.Sound(cfg.ASSETS_DIR / "victory_sound.ogg")
 victorySound.set_volume(0.2) # Set the volume for the victory sound effect
 eatingSound = pygame.mixer.Sound(cfg.ASSETS_DIR / "eatingSnd.wav")
@@ -370,41 +411,41 @@ background.set_colorkey(cfg.WHITE)
 # Sky color: can be set to any value (for weather as well)
 SKY_COLOR = (135,206,235)
 
-# --- FEED, SLEEP, GAME BUTTONS ---
+#  FEED, SLEEP, GAME BUTTONS and their positions
 btn_width = 140
 btn_height = 60
 btn_y_pos = cfg.HEIGHT - 80
 feed_button = pygame.Rect(20, btn_y_pos, btn_width, btn_height)
 sleep_button = pygame.Rect(180, btn_y_pos,btn_width, btn_height)
 game_button = pygame.Rect(340, btn_y_pos, btn_width, btn_height)
-
 flappy_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 170, 240, 70)
 snake_select_button = pygame.Rect(cfg.WIDTH // 2 - 120, 270, 240, 70)
 future_game_button_2 = pygame.Rect(cfg.WIDTH // 2 - 120, 370, 240, 70)
-
 change_weather_btn = pygame.Rect(cfg.WIDTH//2 - 140, 320, 280, 60)
 
 settings_open = False # Toggle for the settings menu
 
-# --- SETTINGS BUTTON and BUTTON ICON-- 
+# Settings Button
 # For the raw asset image
 raw_icon = pygame.image.load(cfg.ASSETS_DIR / "settings_button.png").convert()
 raw_icon.set_colorkey(cfg.WHITE) # Don't want White background from the gear icon
 gear_area = raw_icon.get_bounding_rect()# Finding the tightest box around gear
+
 # For the icon surface and all the other stuff for filling
 cropped_icon = pygame.Surface(gear_area.size)
 cropped_icon.fill(cfg.WHITE)
 cropped_icon.set_colorkey(cfg.WHITE)
 cropped_icon.blit(raw_icon,(0,0),gear_area)
+
 #settings icon and button
 settings_icon = pygame.transform.scale_by(cropped_icon, 3.5)
 settings_btn = settings_icon.get_rect(topright=(cfg.WIDTH - 20, 20))
 
-# --- Button colors ---
+#     Button colors    
 BUTTON_COLOR = (100,100,100)
 BUTTON_HOVER = (150,150,150)
 
-# --- BACK BUTTON ICON ---
+#     BACK BUTTON ICON 
 # Will also need to set the settings for a back button for exiting feeding and such
 # Raw asset (similar to settings button)
 raw_back_icon = pygame.image.load(cfg.ASSETS_DIR / "back_button_icon.png").convert()
@@ -420,7 +461,7 @@ cropped_back_icon.blit(raw_back_icon, (0,0), back_icon_area)
 back_icon = pygame.transform.scale_by(cropped_back_icon, 4)
 back_btn_rect = back_icon.get_rect(topleft=(20,20))
 
-# --- INFORMATION BUTTON ICON ---
+#     INFORMATION BUTTON ICON 
 raw_info_icon = pygame.image.load(cfg.ASSETS_DIR / "information_button_icon.png").convert()
 raw_info_icon.set_colorkey(cfg.WHITE)
 # Find the tightest box around the info icon
@@ -434,13 +475,15 @@ cropped_info_icon.blit(raw_info_icon, (0,0), info_icon_area)
 info_icon = pygame.transform.scale_by(cropped_info_icon, 4)
 info_icon_rect = info_icon.get_rect(topright=(cfg.WIDTH - 20, 20)) # will change to appropriate location
 
-# --- STAT ICONS ---
+#     STAT ICONS 
 energy_icon = pygame.transform.scale_by(pygame.image.load(cfg.ASSETS_DIR / "energy_icon.png").convert(), 2.25)
 energy_icon.set_colorkey(cfg.WHITE)
 hunger_icon = pygame.transform.scale_by(pygame.image.load(cfg.ASSETS_DIR / "hunger_food_icon.png").convert(), 3.5)
 hunger_icon.set_colorkey(cfg.WHITE)
 
-# -- DISPLAY ICONS --
+# draw_stats
+# This function draws the pet's energy and hunger stats on the screen with corresponding icons.
+# It changes the color of the stat text to red when the values are low (below 15) to alert the player.
 def draw_stats(screen):
     # Colors for the icons
     NORMAL = cfg.BLACK
@@ -460,12 +503,17 @@ def draw_stats(screen):
     hunger_txt = medium_font.render(f"{int(my_pet.hunger)}%", True, hunger_color)
     screen.blit(hunger_txt, (h_x + 105, h_y + 59))
 
+# draw_location
+# This function draws the current location and weather category on the screen if the location and weather data are available.
 def draw_location(screen):
     if current_location and current_weather:
         category = current_weather.get("category", "").capitalize()
         txt = small_font.render(f"{current_location}: {category}", True, cfg.BLACK)
         screen.blit(txt, (20, 60))
 
+# apply_weather_tint
+# This function applies a colored tint to the screen based on the current weather category (cold, hot, temperate) 
+# to visually represent the weather conditions in the game.
 def apply_weather_tint(screen, category):
     tint = pygame.Surface((cfg.WIDTH, cfg.HEIGHT))
     tint.set_alpha(80)
@@ -478,10 +526,9 @@ def apply_weather_tint(screen, category):
         return
     
     screen.blit(tint, (0, 0))
-# --------------------------
-# --- RUNNING PARAMETERS --- 
-# --------------------------
 
+
+#     RUNNING PARAMETERS 
 Running = True
 clock = pygame.time.Clock()
 AUTOSAVE_INTERVAL = 10_000   # milliseconds (10 seconds)
@@ -506,6 +553,7 @@ foods = [
     FoodItem("Cookie", cfg.ASSETS_DIR / "cookie.png", slot3_x, slot_y)
 ]
 
+# This list will hold the active particles (crumbs) that are generated when feeding the pet.
 particles = [] # crumb particles
 
 # Initialize cloud objects
@@ -523,6 +571,7 @@ if not username:
 # After the initial log in screen, reset clock so it doesn't accumulate dt
 clock.tick()
 
+# Ensure the user exists in the database and load their pet data (stats and inventory) into the game
 ensure_user_exists(username)
 stats, inv = load_pet_data(username)
 if stats:
@@ -532,13 +581,13 @@ if inv:
     my_pet.inventory["Raspberry"] = inv[1]
     my_pet.inventory["Cookie"] = inv[2]
     
-# --- LOAD PET DATA FROM DATABASE ---
+#     LOAD PET DATA FROM DATABASE 
 stats, inv = load_pet_data(username)
 print("Loaded Stats: ", stats)
 print(f"Pet Stats - Hunger: {my_pet.hunger}, Happiness: {my_pet.happiness}, Energy: {my_pet.energy}")
 if stats:
     my_pet.hunger, my_pet.happiness, my_pet.energy = stats
-    
+
 print("Loaded Inventory: ", inv)
 print(f"Pet Inventory - Blueberry: {my_pet.inventory['Blueberry']}, Raspberry: {my_pet.inventory['Raspberry']}, Cookie: {my_pet.inventory['Cookie']}")
 if inv:
@@ -547,17 +596,19 @@ if inv:
     my_pet.inventory["Cookie"] = inv[2]
     
 
-# -------------------------------
-# --- MAIN RUNNING GAME LOOP ----
+#     MAIN RUNNING GAME LOOP 
 while Running:
     dt = clock.tick(cfg.FPS)    #frame rate/delta time
 
+    # autosave implementation: saves pet data every 10 seconds to prevent data loss and keep stats updated 
+    # in case of crashes or unexpected exits
     autosave_timer += dt
     if autosave_timer >= AUTOSAVE_INTERVAL:
         save_pet_data(username, my_pet)
         autosave_timer = 0
         print("Autosaved pet data.")
 
+    # Get mouse position for interactions and button hovering effects
     mouse_pos = pygame.mouse.get_pos()
 
     # Mouth Hitbox (Feeding/petting)
@@ -612,7 +663,7 @@ while Running:
                     
                 elif not settings_open and game_button.collidepoint(mouse_pos):
                     scene = "GAME_MENU"
-                
+            # Scene interactions for feed and game menu  
             elif scene == "FEED":
                 if back_btn_rect.collidepoint(mouse_pos): 
                     scene = "MAIN"
@@ -667,13 +718,11 @@ while Running:
             if my_pet.state == "Eating":
                 my_pet.change_state("Idle")
 
-    # ------------------
-    #   DRAWING LOGIC
-    # ------------------
-    # Background set up
-
+    
+    # Drawing the background and sky
     screen.fill(SKY_COLOR)
 
+    # Night overlay implementation: when the pet is sleeping, we want to darken the room and display stars to create a night effect
     if my_pet.state == "Sleeping":
         screen.blit(night_overlay, (0,0))
 
@@ -688,15 +737,15 @@ while Running:
         
     screen.blit(background,(0,0))
 
+    # Weather tint application: if there is current weather data available,
+    # apply the corresponding tint to the screen to visually represent the weather conditions in the game.
     if current_weather:
         apply_weather_tint(screen, current_weather.get("category"))
 
-
-
+    # Main Scene
     if scene == "MAIN":
         # Pet Display logic for main
         my_pet.update(dt)
-
 
         # If the pet is sleeping, darken the room
         if my_pet.state == "Sleeping":
@@ -710,8 +759,9 @@ while Running:
         draw_stats(screen)
         draw_location(screen)
 
-        # ---Drawing section---
+        #    Drawing section
         if settings_open:
+            # overlay for settings menu
             overlay = pygame.Surface((cfg.WIDTH,cfg.HEIGHT))
             overlay.set_alpha(180)
             overlay.fill((0,0,0))
@@ -722,6 +772,7 @@ while Running:
             screen.blit(s_text, (cfg.WIDTH//2 - 100, 150))
             screen.blit(back_text,(cfg.WIDTH//2 - 75, 270))
 
+            # Change Weather Button
             pygame.draw.rect(
                 screen,
                 BUTTON_HOVER if
@@ -736,7 +787,7 @@ while Running:
                 (change_weather_btn.centerx - txt.get_width() // 2,
                  change_weather_btn.centery - txt.get_height() // 2)
             )
-
+        # If settings menu is not open, display the main buttons (feed, sleep, game)
         else:
             # Button Drawing Implementation
             for rect, label in [(feed_button,"FEED"),(sleep_button, "SLEEP"),(game_button,"GAME")]:
@@ -756,7 +807,7 @@ while Running:
             pygame.draw.rect(screen,BUTTON_HOVER,settings_btn,border_radius=8)
         screen.blit(settings_icon,settings_btn)
 
-
+    # Feed Scene
     elif scene == "FEED":
         my_pet.update(dt)
         screen.blit(back_icon,back_btn_rect)
@@ -805,7 +856,7 @@ while Running:
                 # This snippet is for drawing the quantity text near the slot
                 qty_text = small_font.render(f"x{my_pet.inventory[food.name]}", True, cfg.BLACK)
                 screen.blit(qty_text, (food.original_pos[0] - 20, food.original_pos[1] + 40))
-                
+    # Game Menu Scene           
     elif scene == "GAME_MENU":
         my_pet.update(dt)
         my_pet.draw(screen)
@@ -817,6 +868,7 @@ while Running:
         title_txt = custom_font.render("SELECT GAME", True, cfg.BLACK)
         screen.blit(title_txt, (cfg.WIDTH // 2 - title_txt.get_width() // 2, 100))
 
+        # This snippet of code is for drawing the game selection buttons and handling their hover effects
         for rect, label in [
             (flappy_select_button, "FLAPPY"),
             (snake_select_button, "SNAKE"),
@@ -837,8 +889,8 @@ while Running:
     #my_pet.draw(screen)
     pygame.display.flip()
 
-
 # closing pygame and closing the program
 pygame.quit()
 
+# system exit to ensure the program fully closes and doesn't run any unintended code after quitting pygame
 sys.exit()
